@@ -1360,7 +1360,7 @@ function renderAnalyses(){
       </td>
       <td style="text-align:center"><div class="score s-${sc(avg)}">${avg}</div></td>
       <td><span class="${bc(lvl(max))}">${lvl(max)}</span></td>
-      <td style="white-space:nowrap;display:flex;gap:4px;align-items:center">
+      <td style="white-space:nowrap">
         <button class="btn btn-sm" onclick="editAnalysis('${a.id}')" title="Retomar e editar análise">✏ Editar</button>
         <button class="btn btn-sm btn-accent" onclick="exportAnalysisReport('${a.id}')" title="Exportar relatório">⬇ Relatório</button>
         <button class="btn btn-sm btn-danger" onclick="delAnalysis('${a.id}')">✕</button>
