@@ -291,7 +291,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 <!-- ANALYSES -->
 <div id="section-analyses" class="section">
   <div class="card"><div class="ctitle">Análises de risco realizadas</div>
-    <div class="twrap"><table><thead><tr><th>ID</th><th>Sistema</th><th>Biblioteca</th><th>Data</th><th>Riscos avaliados</th><th>Score médio</th><th>Nível máx.</th><th></th></tr></thead><tbody id="analysesTable"></tbody></table></div>
+    <div class="twrap"><table><thead><tr><th>ID</th><th>Sistema</th><th>Biblioteca</th><th>Data</th><th>Riscos</th><th>Score médio</th><th>Nível máx.</th><th></th></tr></thead><tbody id="analysesTable"></tbody></table></div>
     <div id="analysesEmpty" class="empty" style="display:none">Nenhuma análise realizada ainda. Inicia uma análise a partir da ficha de um sistema.</div>
   </div>
 </div>
@@ -678,6 +678,16 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
     </div>
     <div class="fg"><label>Ambiente</label>
       <select id="sf-env"><option>Produção</option><option>Desenvolvimento</option><option>Teste</option><option>DR</option></select>
+    </div>
+    <div class="fg"><label>Classificação da informação</label>
+      <select id="sf-class">
+        <option value="">— Não classificado —</option>
+        <option value="Pública">Pública</option>
+        <option value="Interna">Interna</option>
+        <option value="Restrito">Restrito</option>
+        <option value="Confidencial">Confidencial</option>
+        <option value="Secreto">Secreto</option>
+      </select>
     </div>
   </div>
   <span class="slabel" style="margin-top:18px">CIA — Confidencialidade</span>
@@ -1182,6 +1192,7 @@ let ch = {};
 // ════════════════════════════════════════════════════════════════════
 function lvl(s){if(s>=17)return"Crítico";if(s>=10)return"Alto";if(s>=4)return"Médio";return"Baixo";}
 function sc(s){if(s>=17)return"critical";if(s>=10)return"high";if(s>=4)return"medium";return"low";}
+function classColor(cl){const m={"Pública":"b-mitigado","Interna":"b-medio","Restrito":"b-alto","Confidencial":"b-critico","Secreto":"b-muitoalto"};return"badge "+(m[cl]||"b-reduzido");}
 function bc(l){const m={Crítico:"b-critico",Alto:"b-alto",Médio:"b-medio",Baixo:"b-reduzido","Muito Alto":"b-muitoalto",Reduzido:"b-reduzido",Aberto:"b-aberto",Mitigado:"b-mitigado",Aceite:"b-aceite",Transferido:"b-transferido"};return"badge "+(m[l]||"b-reduzido");}
 function ctc(t){return t==="Preventivo"?"ct-prev":t==="Detetivo"?"ct-det":"ct-resp";}
 function sysById(id){return systems.find(s=>s.id===id);}
@@ -1263,7 +1274,7 @@ function renderSystems(){
       <div class="sys-top"><div><div class="sys-name">${s.name}</div><div class="sys-sub">${s.type} · ${s.env}</div></div><span class="${bc(crit)}">${crit}</span></div>
       <div class="sys-desc">${s.desc||"—"}</div>
       <div>${ciaRow("Confidencialidade",s.cia.C)}${ciaRow("Integridade",s.cia.I)}${ciaRow("Disponibilidade",s.cia.A)}</div>
-      <div style="font-size:12px;color:var(--muted)"><strong>Dados:</strong> ${(s.data||[]).join(", ")||"—"}<br><strong>Proprietário:</strong> ${s.owner||"—"}</div>
+      <div style="font-size:12px;color:var(--muted)"><strong>Dados:</strong> ${(s.data||[]).join(", ")||"—"}<br><strong>Proprietário:</strong> ${s.owner||"—"}${s.classification?`<br><strong>Classificação:</strong> <span class="badge ${classColor(s.classification)}" style="font-size:10px;vertical-align:middle">${s.classification}</span>`:""}</div>
       <div class="sys-footer">
         <span style="font-size:12px;color:var(--muted)">${ac} análise${ac!==1?"s":""} · ${rc} risco${rc!==1?"s":""}</span>
         <div class="spacer"></div>
@@ -1293,6 +1304,7 @@ function openSysAdd(){
   ["sf-name","sf-desc","sf-owner"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("sf-type").value="Aplicação Web";
   document.getElementById("sf-env").value="Produção";
+  document.getElementById("sf-class").value="";
   Array.from(document.getElementById("sf-data").options).forEach(o=>o.selected=false);
   buildCIAOpts("sfC","C",null);buildCIAOpts("sfI","I",null);buildCIAOpts("sfA","A",null);
   document.getElementById("sysModal").classList.add("open");
@@ -1304,6 +1316,7 @@ function openSysEdit(id){
   document.getElementById("sf-name").value=s.name;document.getElementById("sf-desc").value=s.desc||"";
   document.getElementById("sf-type").value=s.type;document.getElementById("sf-owner").value=s.owner||"";
   document.getElementById("sf-env").value=s.env||"Produção";
+  document.getElementById("sf-class").value=s.classification||"";
   Array.from(document.getElementById("sf-data").options).forEach(o=>o.selected=(s.data||[]).includes(o.value));
   buildCIAOpts("sfC","C",s.cia.C);buildCIAOpts("sfI","I",s.cia.I);buildCIAOpts("sfA","A",s.cia.A);
   document.getElementById("sysModal").classList.add("open");
@@ -1314,7 +1327,8 @@ function saveSys(){
   if(!name){alert("O nome é obrigatório.");return;}
   if(!ciaState.C||!ciaState.I||!ciaState.A){alert("Classifica os três vetores CIA.");return;}
   const data=Array.from(document.getElementById("sf-data").selectedOptions).map(o=>o.value);
-  const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,data,cia:{...ciaState}};
+  const classification=document.getElementById("sf-class").value;
+  const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,classification,data,cia:{...ciaState}};
   if(editSysId){systems[systems.findIndex(x=>x.id===editSysId)]=s;}else{systems.push(s);}
   closeSysModal();persistAppData();renderSystems();syncSysFilter();
 }
@@ -1336,17 +1350,52 @@ function renderAnalyses(){
     const scores=aRisks.map(r=>r.prob*r.impact);
     const avg=scores.length?Math.round(scores.reduce((x,y)=>x+y,0)/scores.length):0;
     const max=scores.length?Math.max(...scores):0;
+    const plans=mitigationPlans.filter(p=>p.analysis===a.id);
     return`<tr>
       <td class="rid">${a.id}</td>
       <td style="font-weight:600">${sys?sys.name:"—"}</td>
-      <td><span class="b-lib">${a.lib}</span></td>
+      <td><span class="b-lib" style="font-size:11px">${a.lib}</span></td>
       <td style="font-size:12px;color:var(--muted)">${a.date}</td>
-      <td style="text-align:center">${aRisks.length}</td>
+      <td style="text-align:center">${aRisks.length}${plans.length?`<div style="font-size:10px;color:var(--muted)">${plans.length} plano${plans.length!==1?"s":""}</div>`:""}
+      </td>
       <td style="text-align:center"><div class="score s-${sc(avg)}">${avg}</div></td>
       <td><span class="${bc(lvl(max))}">${lvl(max)}</span></td>
-      <td><button class="btn btn-sm btn-danger" onclick="delAnalysis('${a.id}')">Remover</button></td>
+      <td style="white-space:nowrap;display:flex;gap:4px;align-items:center">
+        <button class="btn btn-sm" onclick="editAnalysis('${a.id}')" title="Retomar e editar análise">✏ Editar</button>
+        <button class="btn btn-sm btn-accent" onclick="exportAnalysisReport('${a.id}')" title="Exportar relatório">⬇ Relatório</button>
+        <button class="btn btn-sm btn-danger" onclick="delAnalysis('${a.id}')">✕</button>
+      </td>
     </tr>`;
   }).join("");
+}
+
+function editAnalysis(aid){
+  const a=analyses.find(x=>x.id===aid);if(!a)return;
+  const aRisks=risks.filter(r=>r.analysis===aid);
+  if(!confirm(`Editar a análise ${aid} (${sysById(a.system)?.name||"—"})?\n\nOs riscos actuais serão substituídos pela nova análise. Os planos de mitigação associados mantêm-se.`))return;
+  // Remove existing risks for this analysis (plans are kept)
+  risks=risks.filter(r=>r.analysis!==aid);
+  analyses=analyses.filter(x=>x.id!==aid);
+  persistAppData();renderTable();renderDash();
+  // Start wizard pre-filled with this analysis config
+  startWizFromAnalysis(a, aRisks);
+}
+
+function startWizFromAnalysis(a, prevRisks){
+  wizSysId=a.system;wizStep=0;wizSelectedLibs=a.lib?a.lib.split(", "):[];
+  wizExcluded=new Set();wizIRItems=[];wizIRIdx=0;wizCtrlIdx=0;wizPendingPlans=[];
+  const sys=sysById(wizSysId);
+  document.getElementById("wizTitle").textContent="Editar Análise — "+(sys?sys.name:"");
+  document.getElementById("wp0sub").textContent=`Sistema: ${sys?sys.name:""} · Ajusta o CIA e re-avalia.`;
+  buildWizSteps(0);
+  document.querySelectorAll(".wpanel").forEach((p,i)=>p.className="wpanel"+(i===0?" active":""));
+  wizCIA={...a.cia};
+  buildWizCIAOpts("wC","C",wizCIA.C);
+  buildWizCIAOpts("wI","I",wizCIA.I);
+  buildWizCIAOpts("wA","A",wizCIA.A);
+  buildLibOpts();
+  showDraftStatus("A editar análise existente");
+  document.getElementById("wizModal").classList.add("open");
 }
 
 function delAnalysis(id){
@@ -1354,6 +1403,157 @@ function delAnalysis(id){
   risks=risks.filter(r=>r.analysis!==id);
   analyses=analyses.filter(a=>a.id!==id);
   persistAppData();renderAnalyses();renderTable();renderDash();
+}
+
+function exportAnalysisReport(aid){
+  const a=analyses.find(x=>x.id===aid);if(!a)return;
+  const sys=sysById(a.system);
+  const aRisks=risks.filter(r=>r.analysis===aid).sort((x,y)=>y.prob*y.impact-x.prob*x.impact);
+  const aPlans=mitigationPlans.filter(p=>p.analysis===aid);
+  const today=new Date().toLocaleDateString("pt-PT",{day:"2-digit",month:"long",year:"numeric"});
+
+  const levelColor={Crítico:"#7f1d1d",Alto:"#92400e",Médio:"#166534",Baixo:"#1e40af"};
+  const levelBg={Crítico:"#fef2f2",Alto:"#fffbeb",Médio:"#f0fdf4",Baixo:"#eff6ff"};
+  const statusColor={Aberto:"#9a3412",Mitigado:"#166534",Aceite:"#1e40af",Transferido:"#5b21b6"};
+  const statusBg={Aberto:"#fff7ed",Mitigado:"#f0fdf4",Aceite:"#eff6ff",Transferido:"#f5f3ff"};
+
+  const ciaRow=(lbl,val)=>`<tr><td style="padding:4px 10px;color:#6b7280;font-size:13px">${lbl}</td><td style="padding:4px 10px;font-weight:600;font-size:13px">${val||"—"}</td></tr>`;
+
+  const riskRows=aRisks.map((r,idx)=>{
+    const si=r.prob*r.impact; const li=lvl(si);
+    const sr=r.residualScore||si; const lr=lvl(sr);
+    const improved=sr<si;
+    return`<tr style="background:${idx%2===0?"#ffffff":"#f9fafb"}">
+      <td style="padding:8px 10px;font-family:monospace;font-size:12px;color:#374151">${r.id}</td>
+      <td style="padding:8px 10px;font-weight:600;font-size:13px;max-width:200px">${r.title}<div style="font-size:11px;color:#9ca3af;font-weight:400">${r.libName||""}</div></td>
+      <td style="padding:8px 10px;text-align:center;font-size:12px">${r.prob}</td>
+      <td style="padding:8px 10px;text-align:center;font-size:12px">${r.impact}</td>
+      <td style="padding:8px 10px;text-align:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;font-weight:700;font-size:13px;background:${levelBg[li]};color:${levelColor[li]}">${si}</span></td>
+      <td style="padding:8px 10px;text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:${levelBg[li]};color:${levelColor[li]}">${li}</span></td>
+      <td style="padding:8px 10px;text-align:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;font-weight:700;font-size:13px;background:${levelBg[lr]};color:${levelColor[lr]}">${sr}</span>${improved?`<span style="font-size:10px;color:#16a34a;display:block;text-align:center">▼${si-sr}</span>`:""}</td>
+      <td style="padding:8px 10px;text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:${statusBg[r.status]||"#f3f4f6"};color:${statusColor[r.status]||"#374151"}">${r.status}</span></td>
+    </tr>`;
+  }).join("");
+
+  const planRows=aPlans.length?aPlans.map((p,idx)=>`
+    <tr style="background:${idx%2===0?"#ffffff":"#f9fafb"}">
+      <td style="padding:8px 10px;font-family:monospace;font-size:12px">${p.id}</td>
+      <td style="padding:8px 10px;font-size:13px;font-weight:600">${p.riskName||p.riskId||"—"}</td>
+      <td style="padding:8px 10px;font-size:12px">${p.ctrlId} — ${p.ctrlName}</td>
+      <td style="padding:8px 10px;font-size:12px">${p.owner||"—"}</td>
+      <td style="padding:8px 10px;font-size:12px;color:#6b7280">${p.dueDate||"—"}</td>
+      <td style="padding:8px 10px"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:${statusBg[p.status]||"#f3f4f6"};color:${statusColor[p.status]||"#374151"}">${p.status}</span></td>
+    </tr>`).join("")
+    :`<tr><td colspan="6" style="padding:16px;text-align:center;color:#9ca3af;font-style:italic">Nenhum plano de mitigação registado.</td></tr>`;
+
+  const critCount=aRisks.filter(r=>lvl(r.prob*r.impact)==="Crítico").length;
+  const highCount=aRisks.filter(r=>lvl(r.prob*r.impact)==="Alto").length;
+  const mitigCount=aRisks.filter(r=>r.status==="Mitigado").length;
+  const avgScore=aRisks.length?Math.round(aRisks.reduce((s,r)=>s+r.prob*r.impact,0)/aRisks.length):0;
+
+  const html=`<!DOCTYPE html>
+<html lang="pt">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Relatório de Análise de Risco — ${aid}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;color:#111827;background:#f9fafb;font-size:14px}
+  .page{max-width:960px;margin:0 auto;padding:32px 24px}
+  .cover{background:#1d3461;color:#fff;border-radius:12px;padding:40px;margin-bottom:32px}
+  .cover-id{font-size:12px;opacity:.65;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+  .cover-title{font-size:28px;font-weight:700;margin-bottom:6px}
+  .cover-sub{font-size:15px;opacity:.75;margin-bottom:24px}
+  .cover-meta{display:flex;gap:32px;flex-wrap:wrap}
+  .cover-meta-item{font-size:13px}
+  .cover-meta-label{opacity:.6;margin-bottom:2px;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  .cover-meta-value{font-weight:600}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+  .metric{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;text-align:center}
+  .metric-val{font-size:28px;font-weight:700;margin-bottom:4px}
+  .metric-lbl{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+  .section{margin-bottom:32px}
+  .section-title{font-size:16px;font-weight:700;color:#1d3461;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e5e7eb}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse}
+  th{background:#f3f4f6;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e5e7eb}
+  .cia-table td{border-bottom:1px solid #f3f4f6}
+  .cia-table tr:last-child td{border-bottom:none}
+  .footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;display:flex;justify-content:space-between}
+  @media print{body{background:#fff}.page{padding:16px}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <div class="cover-id">IT Risk Register · ${aid}</div>
+    <div class="cover-title">Relatório de Análise de Risco</div>
+    <div class="cover-sub">${sys?sys.name:"Sistema não identificado"}</div>
+    <div class="cover-meta">
+      <div class="cover-meta-item"><div class="cover-meta-label">Sistema</div><div class="cover-meta-value">${sys?sys.name:"—"}</div></div>
+      <div class="cover-meta-item"><div class="cover-meta-label">Data de análise</div><div class="cover-meta-value">${a.date}</div></div>
+      <div class="cover-meta-item"><div class="cover-meta-label">Frameworks</div><div class="cover-meta-value">${a.lib||"—"}</div></div>
+      <div class="cover-meta-item"><div class="cover-meta-label">Gerado em</div><div class="cover-meta-value">${today}</div></div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-val" style="color:#374151">${aRisks.length}</div><div class="metric-lbl">Riscos avaliados</div></div>
+    <div class="metric"><div class="metric-val" style="color:#7f1d1d">${critCount}</div><div class="metric-lbl">Críticos</div></div>
+    <div class="metric"><div class="metric-val" style="color:#92400e">${highCount}</div><div class="metric-lbl">Altos</div></div>
+    <div class="metric"><div class="metric-val" style="color:#166534">${mitigCount}</div><div class="metric-lbl">Mitigados</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">1. Informação do sistema</div>
+    <div class="card">
+      <table class="cia-table">
+        ${ciaRow("Nome",sys?sys.name:"—")}
+        ${ciaRow("Tipo",sys?sys.type:"—")}
+        ${ciaRow("Proprietário",sys?sys.owner:"—")}
+        ${ciaRow("Ambiente",sys?sys.env:"—")}
+        ${ciaRow("Classificação da informação",sys?sys.classification||"Não classificado":"—")}
+        ${ciaRow("Confidencialidade (C)",a.cia?.C||"—")}
+        ${ciaRow("Integridade (I)",a.cia?.I||"—")}
+        ${ciaRow("Disponibilidade (A)",a.cia?.A||"—")}
+        ${ciaRow("Bibliotecas utilizadas",a.lib||"—")}
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. Registo de riscos — ${aRisks.length} risco${aRisks.length!==1?"s":""}</div>
+    <div class="card">
+      <table>
+        <thead><tr><th>ID</th><th>Risco</th><th>P</th><th>I</th><th>Score Inerente</th><th>Nível</th><th>Score Residual</th><th>Estado</th></tr></thead>
+        <tbody>${riskRows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. Planos de mitigação — ${aPlans.length} plano${aPlans.length!==1?"s":""}</div>
+    <div class="card">
+      <table>
+        <thead><tr><th>ID</th><th>Risco</th><th>Controlo</th><th>Responsável</th><th>Data limite</th><th>Estado</th></tr></thead>
+        <tbody>${planRows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>IT Risk Register · ${aid} · ${sys?sys.name:""}</span>
+    <span>Gerado em ${today}</span>
+  </div>
+
+</div>
+</body></html>`;
+
+  openJsonModal(
+    `Relatório ${aid} — copia o HTML abaixo e guarda como .html`,
+    html,
+    null
+  );
 }
 
 // ════════════════════════════════════════════════════════════════════
