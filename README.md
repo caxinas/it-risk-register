@@ -2,7 +2,7 @@
 
 Aplicação web de gestão de risco de segurança da informação. Ficheiro HTML standalone — sem servidor, sem base de dados, sem dependências externas além de Chart.js (carregado via CDN).
 
-🔗 **[Abrir a aplicação](https://SEU-USERNAME.github.io/it-risk-register)**
+🔗 **[Abrir a aplicação](https://caxinas.github.io/it-risk-register)**
 
 ---
 
