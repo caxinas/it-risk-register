@@ -326,8 +326,15 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 
 <!-- CONTROLS -->
 <div id="section-controls" class="section">
-  <div class="card"><div class="ctitle">Biblioteca de controlos de segurança</div>
-    <div class="twrap"><table><thead><tr><th>ID</th><th>Controlo</th><th>Tipo</th><th>Framework</th><th>Riscos associados</th></tr></thead><tbody id="ctrlTable"></tbody></table></div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div class="ctitle" style="margin-bottom:0">Biblioteca de controlos de segurança</div>
+      <button class="btn btn-primary" onclick="openCtrlAdd()">+ Novo controlo</button>
+    </div>
+    <div class="twrap">
+      <table><thead><tr><th>ID</th><th>Controlo</th><th>Tipo</th><th>Framework</th><th>Riscos associados</th><th></th></tr></thead>
+      <tbody id="ctrlTable"></tbody></table>
+    </div>
   </div>
 </div>
 
@@ -1027,7 +1034,7 @@ const LIBS = {
 
 const LIB_NAMES = Object.keys(LIBS);
 
-const CTRLS = [
+let globalCtrls = [
   {id:"C-001",name:"Autenticação multifator (MFA)",type:"Preventivo",fw:"ISO 27001 A.9.4"},
   {id:"C-002",name:"Gestão de acessos privilegiados (PAM)",type:"Preventivo",fw:"CIS Control 5"},
   {id:"C-003",name:"SIEM / monitorização de eventos",type:"Detetivo",fw:"NIST CSF DE.CM"},
@@ -1078,7 +1085,7 @@ function sysCrit(s){const v=[CIA_PCT[s.cia.C]||0,CIA_PCT[s.cia.I]||0,CIA_PCT[s.c
 function nextSysId(){return"S-"+String(Math.max(0,...systems.map(s=>parseInt(s.id.replace("S-",""))||0))+1).padStart(3,"0");}
 function nextRiskId(){return"R-"+String(Math.max(0,...(risks.length?risks.map(r=>parseInt(r.id.replace("R-",""))||0):[0]))+1).padStart(3,"0");}
 function nextAnalysisId(){return"AN-"+String(Math.max(0,...(analyses.length?analyses.map(a=>parseInt(a.id.replace("AN-",""))||0):[0]))+1).padStart(3,"0");}
-function ctrl(id){return CTRLS.find(c=>c.id===id);}
+function ctrl(id){return globalCtrls.find(c=>c.id===id);}
 
 // ════════════════════════════════════════════════════════════════════
 // TAB
@@ -1279,7 +1286,7 @@ function renderTable(){
 // RISK MODAL (manual)
 // ════════════════════════════════════════════════════════════════════
 function buildCtrlList(cid,sel){
-  document.getElementById(cid).innerHTML=CTRLS.map(c=>`<div class="ctrl-item"><input type="checkbox" id="${cid}-${c.id}" value="${c.id}" ${(sel||[]).includes(c.id)?"checked":""}><label for="${cid}-${c.id}" style="flex:1;cursor:pointer;font-size:12px"><strong>${c.id}</strong> — ${c.name}</label><span class="ct ${ctc(c.type)}">${c.type}</span></div>`).join("");
+  document.getElementById(cid).innerHTML=globalCtrls.map(c=>`<div class="ctrl-item"><input type="checkbox" id="${cid}-${c.id}" value="${c.id}" ${(sel||[]).includes(c.id)?"checked":""}><label for="${cid}-${c.id}" style="flex:1;cursor:pointer;font-size:12px"><strong>${c.id}</strong> — ${c.name}</label><span class="ct ${ctc(c.type)}">${c.type}</span></div>`).join("");
 }
 function getChecked(cid){return[...document.querySelectorAll("#"+cid+" input:checked")].map(x=>x.value);}
 function fillSysSel(selId,sid){
@@ -1331,10 +1338,131 @@ function delRisk(id){if(confirm("Remover este risco?")){risks=risks.filter(r=>r.
 // CONTROLS
 // ════════════════════════════════════════════════════════════════════
 function renderControls(){
-  document.getElementById("ctrlTable").innerHTML=CTRLS.map(c=>{
+  document.getElementById("ctrlTable").innerHTML=globalCtrls.map(c=>{
     const assoc=risks.filter(r=>r.controls&&r.controls.includes(c.id));
-    return`<tr><td class="rid">${c.id}</td><td style="font-weight:600">${c.name}</td><td><span class="ct ${ctc(c.type)}">${c.type}</span></td><td style="font-size:12px;color:var(--muted)">${c.fw}</td><td style="font-size:12px">${assoc.length?assoc.map(r=>`<span class="rid">${r.id}</span> `).join(""):"—"}</td></tr>`;
+    return`<tr>
+      <td class="rid">${c.id}</td>
+      <td style="font-weight:600">${c.name}</td>
+      <td><span class="ct ${ctc(c.type)}">${c.type}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${c.fw||"—"}</td>
+      <td style="font-size:12px">${assoc.length?assoc.map(r=>`<span class="rid">${r.id}</span> `).join(""):"—"}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="openCtrlEdit('${c.id}')">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteCtrl('${c.id}')">✕</button>
+      </td>
+    </tr>`;
   }).join("");
+}
+
+function openCtrlAdd(){
+  editCtrlId=null;
+  document.getElementById("ctrlMTitle").textContent="Novo controlo global";
+  ["gc-id","gc-name","gc-desc","gc-fw"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("gc-type").value="Preventivo";
+  document.getElementById("gc-lib").style.display="none";
+  document.getElementById("ctrlModal").classList.add("open");
+}
+function openCtrlEdit(id){
+  const c=globalCtrls.find(x=>x.id===id);if(!c)return;
+  editCtrlId=id;
+  document.getElementById("ctrlMTitle").textContent="Editar controlo — "+id;
+  document.getElementById("gc-id").value=c.id;
+  document.getElementById("gc-name").value=c.name;
+  document.getElementById("gc-desc").value=c.desc||"";
+  document.getElementById("gc-type").value=c.type;
+  document.getElementById("gc-fw").value=c.fw||"";
+  document.getElementById("gc-lib").style.display="none";
+  document.getElementById("ctrlModal").classList.add("open");
+}
+function openLibCtrlAdd(libName, riskId){
+  editCtrlId=null; editCtrlLib=libName; editCtrlRiskId=riskId;
+  document.getElementById("ctrlMTitle").textContent="Novo controlo — "+libName;
+  ["gc-id","gc-name","gc-desc","gc-fw"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("gc-type").value="Preventivo";
+  const libLabel=document.getElementById("gc-lib");
+  libLabel.style.display="block";
+  libLabel.textContent="Biblioteca: "+libName+(riskId?" · Risco: "+riskId:"");
+  document.getElementById("ctrlModal").classList.add("open");
+}
+function openLibCtrlEdit(libName, riskId, ctrlId){
+  const lib=allLibs()[libName];
+  const c=lib&&lib.customCtrls&&lib.customCtrls[ctrlId];
+  if(!c)return;
+  editCtrlId=ctrlId; editCtrlLib=libName; editCtrlRiskId=riskId;
+  document.getElementById("ctrlMTitle").textContent="Editar controlo — "+ctrlId;
+  document.getElementById("gc-id").value=c.id;
+  document.getElementById("gc-name").value=c.name;
+  document.getElementById("gc-desc").value=c.desc||"";
+  document.getElementById("gc-type").value=c.type||"Preventivo";
+  document.getElementById("gc-fw").value=c.ref||c.fw||"";
+  const libLabel=document.getElementById("gc-lib");
+  libLabel.style.display="block";
+  libLabel.textContent="Biblioteca: "+libName;
+  document.getElementById("ctrlModal").classList.add("open");
+}
+function closeCtrlModal(){document.getElementById("ctrlModal").classList.remove("open");}
+let editCtrlId=null, editCtrlLib=null, editCtrlRiskId=null;
+
+function saveCtrl(){
+  const id=document.getElementById("gc-id").value.trim();
+  const name=document.getElementById("gc-name").value.trim();
+  if(!name){alert("O nome é obrigatório.");return;}
+
+  if(editCtrlLib){
+    // Save to custom library
+    const lib=customLibs[editCtrlLib];if(!lib)return;
+    if(!lib.customCtrls)lib.customCtrls={};
+    const c={id:id||editCtrlId||"C-?",name,desc:document.getElementById("gc-desc").value.trim(),type:document.getElementById("gc-type").value,ref:document.getElementById("gc-fw").value.trim()};
+    // If riskId specified, also add to that risk ctrls array
+    if(editCtrlRiskId&&!editCtrlId){
+      const risk=lib.risks.find(r=>r.id===editCtrlRiskId);
+      if(risk&&!risk.ctrls.includes(c.id)) risk.ctrls.push(c.id);
+    }
+    // If renaming id, update all risk ctrls arrays in this lib
+    if(editCtrlId&&editCtrlId!==c.id){
+      delete lib.customCtrls[editCtrlId];
+      lib.risks.forEach(r=>{const i=r.ctrls.indexOf(editCtrlId);if(i>=0)r.ctrls[i]=c.id;});
+    }
+    lib.customCtrls[c.id]=c;
+    persistAppData();renderLibraries();renderLibContent();closeCtrlModal();
+    return;
+  }
+
+  // Save to global library
+  if(editCtrlId){
+    const idx=globalCtrls.findIndex(x=>x.id===editCtrlId);
+    if(idx>=0){
+      // If ID changed, update all risk controls references
+      if(editCtrlId!==id){
+        risks.forEach(r=>{if(r.controls){const i=r.controls.indexOf(editCtrlId);if(i>=0)r.controls[i]=id;}});
+      }
+      globalCtrls[idx]={id:id||editCtrlId,name,desc:document.getElementById("gc-desc").value.trim(),type:document.getElementById("gc-type").value,fw:document.getElementById("gc-fw").value.trim()};
+    }
+  } else {
+    if(!id){alert("O ID é obrigatório para controlos globais.");return;}
+    if(globalCtrls.find(x=>x.id===id)){alert(`ID "${id}" já existe.`);return;}
+    globalCtrls.push({id,name,desc:document.getElementById("gc-desc").value.trim(),type:document.getElementById("gc-type").value,fw:document.getElementById("gc-fw").value.trim()});
+  }
+  persistAppData();renderControls();closeCtrlModal();
+}
+
+function deleteCtrl(id){
+  const assoc=risks.filter(r=>r.controls&&r.controls.includes(id));
+  const msg=assoc.length
+    ?`Este controlo está associado a ${assoc.length} risco(s). Ao remover perderá essas associações. Continuar?`
+    :"Remover este controlo da biblioteca global?";
+  if(!confirm(msg))return;
+  globalCtrls=globalCtrls.filter(c=>c.id!==id);
+  risks.forEach(r=>{if(r.controls)r.controls=r.controls.filter(x=>x!==id);});
+  persistAppData();renderControls();
+}
+
+function deleteLibCtrl(libName, ctrlId){
+  const lib=customLibs[libName];if(!lib)return;
+  if(!confirm(`Remover o controlo "${ctrlId}" da biblioteca "${libName}"?`))return;
+  if(lib.customCtrls) delete lib.customCtrls[ctrlId];
+  lib.risks.forEach(r=>{if(r.ctrls)r.ctrls=r.ctrls.filter(x=>x!==ctrlId);});
+  persistAppData();renderLibContent();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1501,7 +1629,7 @@ function renderIRStep(){
       return`<div class="ctrl-item"><input type="checkbox" id="wirc-${safeKey}-${cid}" value="${cid}" ${item.selectedCtrls.includes(cid)?"checked":""} onchange="toggleIRCtrl('${cid}',this)"><label style="flex:1;cursor:pointer;font-size:12px"><strong>${c.id}</strong> — ${c.name}</label><span class="ct ${ctc(c.type)}">${c.type}</span></div>`;
     }).join("")+
     `<details style="margin-top:8px"><summary style="font-size:12px;color:var(--muted);cursor:pointer;padding:4px 0">+ Outros controlos globais</summary><div style="margin-top:6px">`+
-    CTRLS.filter(c=>!item.ctrls.includes(c.id)).map(c=>
+    globalCtrls.filter(c=>!item.ctrls.includes(c.id)).map(c=>
       `<div class="ctrl-item"><input type="checkbox" id="wirc2-${safeKey}-${c.id}" value="${c.id}" ${item.selectedCtrls.includes(c.id)?"checked":""} onchange="toggleIRCtrl('${c.id}',this)"><label style="flex:1;cursor:pointer;font-size:12px;color:var(--muted)"><strong>${c.id}</strong> — ${c.name}</label><span class="ct ${ctc(c.type)}">${c.type}</span></div>`
     ).join("")+`</div></details>`;
   document.getElementById("wIRPrev").disabled=(wizIRIdx===0);
@@ -1781,7 +1909,7 @@ function clearDraft(){
 function persistAppData(){
   if(!LS_OK) return; // silently skip if localStorage unavailable
   try {
-    localStorage.setItem(APP_KEY, JSON.stringify({systems,risks,analyses,mitigationPlans,customLibs,appUsers,authModeEnabled}));
+    localStorage.setItem(APP_KEY, JSON.stringify({systems,risks,analyses,mitigationPlans,customLibs,appUsers,authModeEnabled,globalCtrls}));
   } catch(e){ console.warn("persistAppData failed",e); }
 }
 
@@ -1798,6 +1926,7 @@ function loadAppData(){
     if(d.customLibs && Object.keys(d.customLibs).length) customLibs=d.customLibs;
     if(d.appUsers && d.appUsers.length) appUsers=d.appUsers;
     if(typeof d.authModeEnabled!=='undefined') authModeEnabled=d.authModeEnabled;
+    if(d.globalCtrls && d.globalCtrls.length) globalCtrls=d.globalCtrls;
   } catch(e){ console.warn("loadAppData failed",e); }
 }
 
@@ -1884,6 +2013,7 @@ function doImportAppData(data){
   if(data.customLibs)    customLibs=data.customLibs;
   if(data.appUsers)      appUsers=data.appUsers;
   if(typeof data.authModeEnabled!=='undefined') authModeEnabled=data.authModeEnabled;
+  if(data.globalCtrls && data.globalCtrls.length) globalCtrls=data.globalCtrls;
   persistAppData();
   renderDash();renderSystems();renderAnalyses();renderTable();
   renderLibraries();renderControls();renderMatrix();syncSysFilter();renderPlans();renderUsers();
@@ -2284,8 +2414,20 @@ function renderLibContent(){
         <span class="badge b-reduzido" style="white-space:nowrap">CIA: ${r.cia}</span>
       </div>
       <div class="lib-risk-desc">${r.desc||""}</div>
-      <div class="lib-ctrl-chips">
-        ${(r.ctrls||[]).map(cid=>{const c=getCtrlForLib(activeLib,cid);return c?`<span class="chip"><strong>${c.id}</strong> — ${c.name}</span>`:""}).join("")||`<span style="font-size:12px;color:var(--muted)">Sem controlos</span>`}
+      <div class="lib-ctrl-chips" style="align-items:center">
+        ${(r.ctrls||[]).map(cid=>{
+          const c=getCtrlForLib(activeLib,cid);
+          if(!c) return "";
+          if(isCustom){
+            return`<span class="chip" style="display:inline-flex;align-items:center;gap:4px">
+              <strong>${c.id}</strong> — ${c.name}
+              <button onclick="openLibCtrlEdit('${activeLib}','${r.id}','${cid}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);padding:0 2px" title="Editar">✏</button>
+              <button onclick="deleteLibCtrl('${activeLib}','${cid}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--crit);padding:0 2px" title="Remover">✕</button>
+            </span>`;
+          }
+          return`<span class="chip"><strong>${c.id}</strong> — ${c.name}</span>`;
+        }).join("")||`<span style="font-size:12px;color:var(--muted)">Sem controlos</span>`}
+        ${isCustom?`<button class="btn btn-sm btn-green" style="font-size:11px;padding:2px 8px" onclick="openLibCtrlAdd('${activeLib}','${r.id}')">+ Controlo</button>`:""}
       </div>
     </div>`).join("")}`;
 }
@@ -2491,7 +2633,7 @@ function buildPlanCtrlSelect(wizItem, preselected){
   const sel=document.getElementById("pm-ctrl");
   const ctrls=wizItem
     ?wizItem.selectedCtrls.map(cid=>{const c=getCtrlForLib(wizItem._lib,cid)||{id:cid,name:cid};return{id:c.id,name:c.name};})
-    :CTRLS.map(c=>({id:c.id,name:c.name}));
+    :globalCtrls.map(c=>({id:c.id,name:c.name}));
   sel.innerHTML="<option value=''>— Seleciona um controlo —</option>"+
     ctrls.map(c=>`<option value="${c.id}|${c.name}" ${preselected===c.id?"selected":""}>${c.id} — ${c.name}</option>`).join("");
 }
@@ -2511,8 +2653,8 @@ function openPlanEdit(id){
   buildPlanRiskSelect(p.riskKey||p.riskId, false);
   document.getElementById("pm-risk").value=p.riskKey||p.riskId||"";
 
-  // detect if ctrl was free (not in CTRLS list)
-  const isLib = CTRLS.some(c=>c.id===p.ctrlId);
+  // detect if ctrl was free (not in globalCtrls list)
+  const isLib = globalCtrls.some(c=>c.id===p.ctrlId);
   if(!isLib){
     setCtrlMode('free');
     document.getElementById("pm-ctrl-free-id").value=p.ctrlId||"";
@@ -2523,7 +2665,7 @@ function openPlanEdit(id){
     document.getElementById("pm-ctrl-free-name").value="";
     const sel=document.getElementById("pm-ctrl");
     sel.innerHTML=`<option value="${p.ctrlId}|${p.ctrlName}" selected>${p.ctrlId} — ${p.ctrlName}</option>`+
-      CTRLS.filter(c=>c.id!==p.ctrlId).map(c=>`<option value="${c.id}|${c.name}">${c.id} — ${c.name}</option>`).join("");
+      globalCtrls.filter(c=>c.id!==p.ctrlId).map(c=>`<option value="${c.id}|${c.name}">${c.id} — ${c.name}</option>`).join("");
   }
 
   const sysSel=document.getElementById("pm-system");
@@ -3200,6 +3342,32 @@ renderLibraries();renderControls();renderMatrix();syncSysFilter();renderPlans();
   <div style="display:flex;justify-content:flex-end;gap:8px">
     <button class="btn" onclick="closeUserSwitch()">Cancelar</button>
     <button class="btn btn-primary" id="userSwitchBtn" onclick="confirmUserSwitch()" style="display:none">Entrar</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL: CONTROLO GLOBAL ═══════════════════════════════════════ -->
+<div class="overlay" id="ctrlModal">
+<div class="modal" style="max-width:560px">
+  <div class="mhdr">
+    <div class="mtitle" id="ctrlMTitle">Novo controlo</div>
+    <button class="btn btn-sm" onclick="closeCtrlModal()">Fechar ✕</button>
+  </div>
+  <div id="gc-lib" style="display:none;margin-bottom:12px;padding:8px 12px;background:var(--accent-light);border-radius:var(--r);font-size:12px;color:var(--accent);font-weight:600"></div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="fgrid">
+      <div class="fg"><label>ID do controlo *</label><input id="gc-id" type="text" placeholder="Ex: C-013, CTRL-001"></div>
+      <div class="fg"><label>Tipo *</label>
+        <select id="gc-type"><option>Preventivo</option><option>Detetivo</option><option>Resposta</option></select>
+      </div>
+      <div class="fg full"><label>Nome do controlo *</label><input id="gc-name" type="text" placeholder="Ex: Autenticação multifator (MFA)"></div>
+      <div class="fg full"><label>Descrição</label><textarea id="gc-desc" rows="2" placeholder="Descreve o controlo e como mitiga riscos..."></textarea></div>
+      <div class="fg full"><label>Referência normativa</label><input id="gc-fw" type="text" placeholder="Ex: ISO 27001 A.9.4, CIS Control 5, NIST CSF PR.AC"></div>
+    </div>
+  </div>
+  <div class="mfooter">
+    <button class="btn" onclick="closeCtrlModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveCtrl()">Guardar controlo</button>
   </div>
 </div>
 </div>
