@@ -239,6 +239,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
         <div id="headerUserRole" style="font-size:10px;color:rgba(255,255,255,.65);line-height:1.2"></div>
       </div>
     </div>
+    <button id="logoutBtn" class="btn btn-sm" style="display:none;background:rgba(220,38,38,.25);color:#fff;border-color:rgba(220,38,38,.5)" onclick="logoutUser()" title="Terminar sessão">⏻ Sair</button>
     <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportAppData()">⬇ Exportar</button>
     <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="openJsonModal('Importar dados — cola o JSON abaixo',null,doImportAppData)">⬆ Importar</button>
   </div>
@@ -2732,6 +2733,7 @@ function renderUsers(){
 
 function toggleAuthMode(){
   authModeEnabled=!authModeEnabled;
+  updateHeaderUser(); // refresh logout button visibility
   renderUsers();
   persistAppData();
 }
@@ -2752,16 +2754,32 @@ function applyNavAccess(){
 }
 
 function updateHeaderUser(){
+  const logoutBtn = document.getElementById("logoutBtn");
   if(!currentUser){
     document.getElementById("headerUserAvatar").textContent="?";
     document.getElementById("headerUserName").textContent="Sem sessão";
     document.getElementById("headerUserRole").textContent="Clica para selecionar";
+    if(logoutBtn) logoutBtn.style.display="none";
     return;
   }
   const role=ROLES[currentUser.role]||ROLES.readonly;
   document.getElementById("headerUserAvatar").textContent=currentUser.name.charAt(0).toUpperCase();
   document.getElementById("headerUserName").textContent=currentUser.name;
   document.getElementById("headerUserRole").textContent=role.label;
+  // Show logout button only when authentication mode is active
+  if(logoutBtn) logoutBtn.style.display=authModeEnabled?"inline-block":"none";
+}
+
+function logoutUser(){
+  if(!confirm(`Terminar sessão de "${currentUser.name}"?`)) return;
+  currentUser=null;
+  updateHeaderUser();
+  applyNavAccess();
+  // Redirect to dashboard
+  const dash=document.querySelector("#mainNav button[data-tab='dashboard']");
+  if(dash) gotoTab("dashboard",dash);
+  // Open user switch so next user can log in
+  openUserSwitch();
 }
 
 // ── User modal (add/edit) ─────────────────────────────────────────
