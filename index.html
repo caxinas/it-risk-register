@@ -188,7 +188,10 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 
 /* System cards */
 .sys-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
-.sys-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px;display:flex;flex-direction:column;gap:10px;transition:box-shadow .15s;}
+.metric-mini{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;text-align:center;min-width:80px;}
+.metric-mini .mv{font-size:22px;font-weight:700;line-height:1.2;}
+.metric-mini .ml{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px;display:flex;flex-direction:column;gap:10px;transition:box-shadow .15s;}
 .sys-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.07);}
 .sys-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
 .sys-name{font-weight:700;font-size:14px;}
@@ -1351,9 +1354,10 @@ function renderAnalyses(){
     const avg=scores.length?Math.round(scores.reduce((x,y)=>x+y,0)/scores.length):0;
     const max=scores.length?Math.max(...scores):0;
     const plans=mitigationPlans.filter(p=>p.analysis===a.id);
+    const locked=!!a.locked;
     return`<tr>
       <td class="rid">${a.id}</td>
-      <td style="font-weight:600">${sys?sys.name:"—"}</td>
+      <td style="font-weight:600">${sys?sys.name:"—"}${locked?`<div style="font-size:10px;margin-top:2px"><span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:3px;padding:1px 6px;font-weight:600">✓ Concluída</span></div>`:""}</td>
       <td><span class="b-lib" style="font-size:11px">${a.lib}</span></td>
       <td style="font-size:12px;color:var(--muted)">${a.date}</td>
       <td style="text-align:center">${aRisks.length}${plans.length?`<div style="font-size:10px;color:var(--muted)">${plans.length} plano${plans.length!==1?"s":""}</div>`:""}
@@ -1361,7 +1365,7 @@ function renderAnalyses(){
       <td style="text-align:center"><div class="score s-${sc(avg)}">${avg}</div></td>
       <td><span class="${bc(lvl(max))}">${lvl(max)}</span></td>
       <td style="white-space:nowrap">
-        <button class="btn btn-sm" onclick="editAnalysis('${a.id}')" title="Retomar e editar análise">✏ Editar</button>
+        <button class="btn btn-sm" onclick="viewAnalysis('${a.id}')" title="Visualizar análise">👁 Ver</button>
         <button class="btn btn-sm btn-accent" onclick="exportAnalysisReport('${a.id}')" title="Exportar relatório">⬇ Relatório</button>
         <button class="btn btn-sm btn-danger" onclick="delAnalysis('${a.id}')">✕</button>
       </td>
@@ -1369,34 +1373,90 @@ function renderAnalyses(){
   }).join("");
 }
 
-function editAnalysis(aid){
+function viewAnalysis(aid){
   const a=analyses.find(x=>x.id===aid);if(!a)return;
-  const aRisks=risks.filter(r=>r.analysis===aid);
-  if(!confirm(`Editar a análise ${aid} (${sysById(a.system)?.name||"—"})?\n\nOs riscos actuais serão substituídos pela nova análise. Os planos de mitigação associados mantêm-se.`))return;
-  // Remove existing risks for this analysis (plans are kept)
-  risks=risks.filter(r=>r.analysis!==aid);
-  analyses=analyses.filter(x=>x.id!==aid);
-  persistAppData();renderTable();renderDash();
-  // Start wizard pre-filled with this analysis config
-  startWizFromAnalysis(a, aRisks);
-}
+  const sys=sysById(a.system);
+  const aRisks=risks.filter(r=>r.analysis===aid).sort((x,y)=>y.prob*y.impact-x.prob*x.impact);
+  const aPlans=mitigationPlans.filter(p=>p.analysis===aid);
+  const scores=aRisks.map(r=>r.prob*r.impact);
+  const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):0;
+  const max=scores.length?Math.max(...scores):0;
+  const critCount=aRisks.filter(r=>lvl(r.prob*r.impact)==="Crítico").length;
+  const mitigCount=aRisks.filter(r=>r.status==="Mitigado").length;
 
-function startWizFromAnalysis(a, prevRisks){
-  wizSysId=a.system;wizStep=0;wizSelectedLibs=a.lib?a.lib.split(", "):[];
-  wizExcluded=new Set();wizIRItems=[];wizIRIdx=0;wizCtrlIdx=0;wizPendingPlans=[];
-  const sys=sysById(wizSysId);
-  document.getElementById("wizTitle").textContent="Editar Análise — "+(sys?sys.name:"");
-  document.getElementById("wp0sub").textContent=`Sistema: ${sys?sys.name:""} · Ajusta o CIA e re-avalia.`;
-  buildWizSteps(0);
-  document.querySelectorAll(".wpanel").forEach((p,i)=>p.className="wpanel"+(i===0?" active":""));
-  wizCIA={...a.cia};
-  buildWizCIAOpts("wC","C",wizCIA.C);
-  buildWizCIAOpts("wI","I",wizCIA.I);
-  buildWizCIAOpts("wA","A",wizCIA.A);
-  buildLibOpts();
-  showDraftStatus("A editar análise existente");
-  document.getElementById("wizModal").classList.add("open");
+  document.getElementById("vaTitle").textContent=`${a.id} — ${sys?sys.name:"—"}`;
+  document.getElementById("vaMeta").innerHTML=
+    `<span class="tag">Data: ${a.date}</span>
+     <span class="tag">${a.lib}</span>
+     <span class="tag">CIA: C=${a.cia?.C||"—"} · I=${a.cia?.I||"—"} · A=${a.cia?.A||"—"}</span>
+     ${a.locked?'<span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:4px;padding:2px 10px;font-size:12px;font-weight:600">✓ Concluída</span>':""}`;
+
+  document.getElementById("vaMetrics").innerHTML=
+    `<div class="metric-mini"><div class="mv">${aRisks.length}</div><div class="ml">Riscos</div></div>
+     <div class="metric-mini"><div class="mv" style="color:var(--crit)">${critCount}</div><div class="ml">Críticos</div></div>
+     <div class="metric-mini"><div class="mv" style="color:var(--high)">${aRisks.filter(r=>lvl(r.prob*r.impact)==="Alto").length}</div><div class="ml">Altos</div></div>
+     <div class="metric-mini"><div class="mv" style="color:var(--med)">${mitigCount}</div><div class="ml">Mitigados</div></div>
+     <div class="metric-mini"><div class="mv">${aPlans.length}</div><div class="ml">Planos</div></div>`;
+
+  document.getElementById("vaRisks").innerHTML=aRisks.length
+    ?`<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg)">
+          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">ID</th>
+          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">Risco</th>
+          <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)">P</th>
+          <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)">I</th>
+          <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)">Score</th>
+          <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)">Nível</th>
+          <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)">Residual</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border)">Estado</th>
+        </tr></thead>
+        <tbody>${aRisks.map((r,i)=>{
+          const si=r.prob*r.impact; const sr=r.residualScore||si;
+          return`<tr style="background:${i%2===0?"var(--surface)":"var(--bg)"}">
+            <td style="padding:5px 8px;font-family:monospace">${r.id}</td>
+            <td style="padding:5px 8px;font-weight:600;max-width:180px">${r.title}<div style="font-size:10px;color:var(--muted);font-weight:400">${r.libName||""}</div></td>
+            <td style="padding:5px 8px;text-align:center">${r.prob}</td>
+            <td style="padding:5px 8px;text-align:center">${r.impact}</td>
+            <td style="padding:5px 8px;text-align:center"><div class="score s-${sc(si)}" style="width:26px;height:26px;font-size:11px">${si}</div></td>
+            <td style="padding:5px 8px;text-align:center"><span class="${bc(lvl(si))}">${lvl(si)}</span></td>
+            <td style="padding:5px 8px;text-align:center"><div class="score s-${sc(sr)}" style="width:26px;height:26px;font-size:11px">${sr}</div></td>
+            <td style="padding:5px 8px"><span class="${bc(r.status)}">${r.status}</span></td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>`
+    :"<p style='color:var(--muted);font-size:13px'>Nenhum risco registado.</p>";
+
+  document.getElementById("vaPlans").innerHTML=aPlans.length
+    ?`<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg)">
+          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">ID</th>
+          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">Risco</th>
+          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">Controlo</th>
+          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">Responsável</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border)">Data limite</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border)">Estado</th>
+        </tr></thead>
+        <tbody>${aPlans.map((p,i)=>`
+          <tr style="background:${i%2===0?"var(--surface)":"var(--bg)"}">
+            <td style="padding:5px 8px;font-family:monospace">${p.id}</td>
+            <td style="padding:5px 8px;max-width:150px">${p.riskName||p.riskId||"—"}</td>
+            <td style="padding:5px 8px">${p.ctrlId} — ${p.ctrlName}</td>
+            <td style="padding:5px 8px">${p.owner||"—"}</td>
+            <td style="padding:5px 8px;color:var(--muted)">${p.dueDate||"—"}</td>
+            <td style="padding:5px 8px"><span class="${bc(p.status)}">${p.status}</span></td>
+          </tr>`).join("")}</tbody>
+      </table>`
+    :"<p style='color:var(--muted);font-size:13px'>Nenhum plano de mitigação associado.</p>";
+
+  // New analysis button — pre-fills system
+  document.getElementById("vaNewBtn").onclick=()=>{
+    closeViewAnalysis();
+    startWiz(a.system);
+  };
+
+  document.getElementById("viewAnalysisModal").classList.add("open");
 }
+function closeViewAnalysis(){document.getElementById("viewAnalysisModal").classList.remove("open");}
 
 function delAnalysis(id){
   if(!confirm("Remover esta análise? Os riscos associados também serão removidos."))return;
@@ -2174,7 +2234,7 @@ function renderFinalSummary(){
 function wSave(){
   const sys=sysById(wizSysId);const aid=nextAnalysisId();
   const today=new Date().toISOString().slice(0,10);
-  analyses.push({id:aid,system:wizSysId,lib:wizSelectedLibs.join(", "),date:today,cia:{...wizCIA}});
+  analyses.push({id:aid,system:wizSysId,lib:wizSelectedLibs.join(", "),date:today,cia:{...wizCIA},locked:true});
   const domMap={"OWASP Top 10 Web":"Aplicações e Software","OWASP API Top 10":"Aplicações e Software","CIS Top 18":"Infraestrutura e Rede","ISO 27001 Annex A":"Conformidade e Regulatório","NIST SP 800-53":"Infraestrutura e Rede"};
   const keyToRiskId={};
   wizIRItems.forEach(item=>{
@@ -3741,6 +3801,30 @@ renderLibraries();renderControls();renderMatrix();syncSysFilter();renderPlans();
     <button class="btn" onclick="closeCtrlModal()">Cancelar</button>
     <button class="btn btn-primary" onclick="saveCtrl()">Guardar controlo</button>
   </div>
+</div>
+</div>
+
+<!-- ═══ MODAL: VISUALIZAR ANÁLISE ════════════════════════════════════ -->
+<div class="overlay" id="viewAnalysisModal">
+<div class="modal" style="max-width:900px;max-height:90vh;overflow-y:auto">
+  <div class="mhdr" style="position:sticky;top:0;z-index:10;background:var(--surface)">
+    <div>
+      <div class="mtitle" id="vaTitle">Análise</div>
+      <div id="vaMeta" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <button class="btn btn-sm btn-accent" id="vaNewBtn">+ Nova análise ao sistema</button>
+      <button class="btn btn-sm" onclick="closeViewAnalysis()">Fechar ✕</button>
+    </div>
+  </div>
+
+  <div id="vaMetrics" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px"></div>
+
+  <div class="ctitle" style="margin-bottom:10px">Riscos avaliados</div>
+  <div id="vaRisks" style="overflow-x:auto;margin-bottom:20px"></div>
+
+  <div class="ctitle" style="margin-bottom:10px">Planos de mitigação</div>
+  <div id="vaPlans" style="overflow-x:auto;margin-bottom:8px"></div>
 </div>
 </div>
 
