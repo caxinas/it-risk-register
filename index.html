@@ -332,7 +332,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
       <button class="btn btn-primary" onclick="openCtrlAdd()">+ Novo controlo</button>
     </div>
     <div class="twrap">
-      <table><thead><tr><th>ID</th><th>Controlo</th><th>Tipo</th><th>Referência</th><th>Origem</th><th>Riscos associados</th><th></th></tr></thead>
+      <table><thead><tr><th>ID</th><th>Controlo</th><th>Tipo</th><th>Referência</th><th>Biblioteca</th><th>Risco</th><th>Associados</th><th></th></tr></thead>
       <tbody id="ctrlTable"></tbody></table>
     </div>
   </div>
@@ -951,83 +951,187 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 // ════════════════════════════════════════════════════════════════════
 const LIBS = {
   "OWASP Top 10 Web": {
-    id: "owasp-web", color: "#dc2626",
-    desc: "Os 10 riscos de segurança mais críticos para aplicações web (OWASP 2021).",
-    risks: [
-      {id:"A01",name:"Broken Access Control",cia:"C",desc:"Falhas no controlo de acesso permitem que utilizadores acedam a recursos ou funções não autorizadas.",ctrls:["C-001","C-002","C-011"]},
-      {id:"A02",name:"Cryptographic Failures",cia:"C",desc:"Falhas na proteção de dados em trânsito e em repouso, expondo informação sensível.",ctrls:["C-004","C-005"]},
-      {id:"A03",name:"Injection",cia:"CIA",desc:"Injeção de comandos maliciosos (SQL, NoSQL, OS) através de dados não validados.",ctrls:["C-006","C-012"]},
-      {id:"A04",name:"Insecure Design",cia:"CIA",desc:"Ausência de padrões de design seguro e modelação de ameaças na fase de arquitetura.",ctrls:["C-012"]},
-      {id:"A05",name:"Security Misconfiguration",cia:"CIA",desc:"Configurações inseguras por omissão, permissões excessivas, serviços desnecessários ativos.",ctrls:["C-006","C-008"]},
-      {id:"A06",name:"Vulnerable and Outdated Components",cia:"CIA",desc:"Uso de componentes com vulnerabilidades conhecidas sem atualização.",ctrls:["C-006"]},
-      {id:"A07",name:"Identification and Authentication Failures",cia:"C",desc:"Falhas em mecanismos de autenticação permitindo comprometimento de credenciais.",ctrls:["C-001","C-002"]},
-      {id:"A08",name:"Software and Data Integrity Failures",cia:"I",desc:"Código e infraestrutura sem verificação de integridade — ataques à supply chain.",ctrls:["C-006","C-007"]},
-      {id:"A09",name:"Security Logging and Monitoring Failures",cia:"A",desc:"Ausência de logging e monitorização eficaz, dificultando deteção e resposta a incidentes.",ctrls:["C-003","C-009"]},
-      {id:"A10",name:"Server-Side Request Forgery (SSRF)",cia:"C",desc:"Aplicação web faz pedidos a recursos internos não intencionados a partir de input do utilizador.",ctrls:["C-008","C-003"]},
+    id:"owasp-web", color:"#dc2626",
+    desc:"Os 10 riscos de segurança mais críticos para aplicações web (OWASP 2021).",
+    risks:[
+      {id:"A01",name:"Broken Access Control",cia:"C",desc:"Falhas no controlo de acesso permitem que utilizadores acedam a recursos ou funções não autorizadas.",
+        ctrls:[{id:"A01-C1",name:"Controlo de acessos baseado em funções (RBAC)",type:"Preventivo",desc:"Implementar RBAC com princípio do menor privilégio.",ref:"OWASP ASVS 4.1"},
+               {id:"A01-C2",name:"Revisão periódica de permissões",type:"Detetivo",desc:"Auditoria regular de permissões e acessos.",ref:"ISO 27001 A.9.2"},
+               {id:"A01-C3",name:"Testes de controlo de acesso",type:"Detetivo",desc:"Pen testing focado em falhas de autorização.",ref:"OWASP Testing Guide"}]},
+      {id:"A02",name:"Cryptographic Failures",cia:"C",desc:"Falhas na proteção de dados em trânsito e em repouso, expondo informação sensível.",
+        ctrls:[{id:"A02-C1",name:"Encriptação de dados em repouso (AES-256)",type:"Preventivo",desc:"Encriptar dados sensíveis armazenados.",ref:"NIST SP 800-111"},
+               {id:"A02-C2",name:"TLS 1.3 em todas as comunicações",type:"Preventivo",desc:"Forçar TLS 1.3 e desativar protocolos fracos.",ref:"OWASP TLS Cheat Sheet"}]},
+      {id:"A03",name:"Injection",cia:"CIA",desc:"Injeção de comandos maliciosos (SQL, NoSQL, OS) através de dados não validados.",
+        ctrls:[{id:"A03-C1",name:"Prepared statements / queries parametrizadas",type:"Preventivo",desc:"Usar queries parametrizadas em todas as interações com BD.",ref:"OWASP SQL Injection Prevention"},
+               {id:"A03-C2",name:"Validação e sanitização de input",type:"Preventivo",desc:"Validar e sanitizar todo o input de utilizadores.",ref:"OWASP Input Validation"},
+               {id:"A03-C3",name:"WAF — Web Application Firewall",type:"Preventivo",desc:"Implementar WAF para detetar e bloquear payloads de injeção.",ref:"CIS Control 13"}]},
+      {id:"A04",name:"Insecure Design",cia:"CIA",desc:"Ausência de padrões de design seguro e modelação de ameaças na fase de arquitetura.",
+        ctrls:[{id:"A04-C1",name:"Threat modeling no SDLC",type:"Preventivo",desc:"Aplicar modelação de ameaças (STRIDE) nas fases de design.",ref:"OWASP Threat Modeling"},
+               {id:"A04-C2",name:"Revisão de arquitetura de segurança",type:"Preventivo",desc:"Revisão por pares da arquitectura com foco em segurança.",ref:"ISO 27001 A.14.2"}]},
+      {id:"A05",name:"Security Misconfiguration",cia:"CIA",desc:"Configurações inseguras por omissão, permissões excessivas, serviços desnecessários ativos.",
+        ctrls:[{id:"A05-C1",name:"Hardening de configurações (CIS Benchmarks)",type:"Preventivo",desc:"Aplicar CIS Benchmarks a todos os sistemas.",ref:"CIS Benchmarks"},
+               {id:"A05-C2",name:"Scan de configuração automatizado",type:"Detetivo",desc:"Ferramentas de scanning de configuração (ex: ScoutSuite, Prowler).",ref:"CIS Control 4"}]},
+      {id:"A06",name:"Vulnerable and Outdated Components",cia:"CIA",desc:"Uso de componentes com vulnerabilidades conhecidas sem atualização.",
+        ctrls:[{id:"A06-C1",name:"SCA — Software Composition Analysis",type:"Preventivo",desc:"Integrar SCA no pipeline CI/CD (ex: Snyk, Dependabot).",ref:"CIS Control 7"},
+               {id:"A06-C2",name:"Processo de gestão de patches",type:"Preventivo",desc:"SLAs de patching definidos por criticidade (CVSSv3).",ref:"NIST SP 800-40"}]},
+      {id:"A07",name:"Identification and Authentication Failures",cia:"C",desc:"Falhas em mecanismos de autenticação permitindo comprometimento de credenciais.",
+        ctrls:[{id:"A07-C1",name:"MFA obrigatório para todas as contas",type:"Preventivo",desc:"Implementar MFA em todos os acessos, incluindo privilegiados.",ref:"NIST SP 800-63B"},
+               {id:"A07-C2",name:"Política de passwords forte",type:"Preventivo",desc:"Comprimento mínimo 12 chars, complexidade, rotação.",ref:"CIS Control 5"},
+               {id:"A07-C3",name:"Deteção de credential stuffing",type:"Detetivo",desc:"Monitorizar tentativas de login com credenciais comprometidas.",ref:"OWASP Credential Stuffing"}]},
+      {id:"A08",name:"Software and Data Integrity Failures",cia:"I",desc:"Código e infraestrutura sem verificação de integridade — ataques à supply chain.",
+        ctrls:[{id:"A08-C1",name:"Verificação de assinaturas de artefactos",type:"Preventivo",desc:"Assinar e verificar todos os artefactos de software.",ref:"SLSA Framework"},
+               {id:"A08-C2",name:"Controlo da supply chain (SBOM)",type:"Preventivo",desc:"Manter Software Bill of Materials atualizado.",ref:"NIST SP 800-161"}]},
+      {id:"A09",name:"Security Logging and Monitoring Failures",cia:"A",desc:"Ausência de logging e monitorização eficaz.",
+        ctrls:[{id:"A09-C1",name:"SIEM centralizado com alertas",type:"Detetivo",desc:"Centralizar logs e configurar alertas de eventos críticos.",ref:"NIST CSF DE.CM"},
+               {id:"A09-C2",name:"Plano de resposta a incidentes",type:"Resposta",desc:"IRP documentado, testado e com RTO/RPO definidos.",ref:"ISO 27001 A.16.1"}]},
+      {id:"A10",name:"Server-Side Request Forgery (SSRF)",cia:"C",desc:"Aplicação web faz pedidos a recursos internos não intencionados.",
+        ctrls:[{id:"A10-C1",name:"Segmentação de rede e deny-by-default",type:"Preventivo",desc:"Bloquear tráfego de saída não autorizado com firewall.",ref:"OWASP SSRF Prevention"},
+               {id:"A10-C2",name:"Validação de URLs externos",type:"Preventivo",desc:"Allowlist de destinos permitidos para pedidos externos.",ref:"CIS Control 12"}]}
     ]
   },
   "OWASP API Top 10": {
-    id: "owasp-api", color: "#7c3aed",
-    desc: "Os 10 riscos de segurança mais críticos para APIs (OWASP API Security 2023).",
-    risks: [
-      {id:"API1",name:"Broken Object Level Authorization",cia:"C",desc:"APIs expõem endpoints que manipulam objetos sem validação adequada de autorização.",ctrls:["C-001","C-002","C-011"]},
-      {id:"API2",name:"Broken Authentication",cia:"C",desc:"Mecanismos de autenticação implementados incorretamente, comprometendo tokens e sessões.",ctrls:["C-001","C-002"]},
-      {id:"API3",name:"Broken Object Property Level Authorization",cia:"C",desc:"Exposição ou modificação indevida de propriedades de objetos — massa assignment e exposição excessiva.",ctrls:["C-011","C-002"]},
-      {id:"API4",name:"Unrestricted Resource Consumption",cia:"A",desc:"Ausência de limites no consumo de recursos — DDoS, abuso de rate, custos excessivos.",ctrls:["C-008","C-003"]},
-      {id:"API5",name:"Broken Function Level Authorization",cia:"C",desc:"Políticas de autorização insuficientes a nível de funções, permitindo acesso administrativo.",ctrls:["C-001","C-002"]},
-      {id:"API6",name:"Unrestricted Access to Sensitive Business Flows",cia:"CIA",desc:"APIs expõem fluxos de negócio sensíveis sem proteção adequada contra abuso automatizado.",ctrls:["C-003","C-012"]},
-      {id:"API7",name:"Server Side Request Forgery",cia:"C",desc:"API obtém recursos remotos a partir de URL fornecida pelo utilizador sem validação.",ctrls:["C-008"]},
-      {id:"API8",name:"Security Misconfiguration",cia:"CIA",desc:"Configurações inseguras em todos os níveis da stack — TLS, headers, CORS, mensagens de erro.",ctrls:["C-005","C-006","C-008"]},
-      {id:"API9",name:"Improper Inventory Management",cia:"CIA",desc:"Endpoints não documentados, versões antigas expostas, ambientes de teste em produção.",ctrls:["C-006","C-011"]},
-      {id:"API10",name:"Unsafe Consumption of APIs",cia:"CIA",desc:"Confiança excessiva em dados de APIs de terceiros sem validação adequada.",ctrls:["C-006","C-012"]},
+    id:"owasp-api", color:"#7c3aed",
+    desc:"Os 10 riscos de segurança mais críticos para APIs (OWASP API Security 2023).",
+    risks:[
+      {id:"API1",name:"Broken Object Level Authorization",cia:"C",desc:"APIs expõem endpoints que manipulam objetos sem validação adequada de autorização.",
+        ctrls:[{id:"API1-C1",name:"Verificação de autorização por objeto",type:"Preventivo",desc:"Validar que o utilizador tem acesso ao objeto específico em cada pedido.",ref:"OWASP API1:2023"},
+               {id:"API1-C2",name:"Testes de BOLA/IDOR",type:"Detetivo",desc:"Testes de penetração focados em IDOR e BOLA.",ref:"OWASP Testing Guide"}]},
+      {id:"API2",name:"Broken Authentication",cia:"C",desc:"Mecanismos de autenticação implementados incorretamente.",
+        ctrls:[{id:"API2-C1",name:"OAuth 2.0 / OIDC com tokens de curta duração",type:"Preventivo",desc:"Usar tokens JWT com expiração curta e refresh tokens.",ref:"RFC 6749"},
+               {id:"API2-C2",name:"Rate limiting em endpoints de autenticação",type:"Preventivo",desc:"Limitar tentativas de login e renovação de tokens.",ref:"OWASP API2:2023"}]},
+      {id:"API3",name:"Broken Object Property Level Authorization",cia:"C",desc:"Exposição ou modificação indevida de propriedades de objetos.",
+        ctrls:[{id:"API3-C1",name:"Filtros de resposta explícitos",type:"Preventivo",desc:"Nunca retornar objetos completos — filtrar campos por perfil.",ref:"OWASP API3:2023"},
+               {id:"API3-C2",name:"Schema validation de input",type:"Preventivo",desc:"Validar e rejeitar campos não esperados no payload.",ref:"JSON Schema Validation"}]},
+      {id:"API4",name:"Unrestricted Resource Consumption",cia:"A",desc:"Ausência de limites no consumo de recursos.",
+        ctrls:[{id:"API4-C1",name:"Rate limiting e throttling por utilizador/IP",type:"Preventivo",desc:"Implementar limites de pedidos por janela de tempo.",ref:"CIS Control 12"},
+               {id:"API4-C2",name:"Quotas e timeouts em operações pesadas",type:"Preventivo",desc:"Definir timeouts e limites de payload para operações longas.",ref:"OWASP API4:2023"}]},
+      {id:"API5",name:"Broken Function Level Authorization",cia:"C",desc:"Políticas de autorização insuficientes a nível de funções.",
+        ctrls:[{id:"API5-C1",name:"RBAC granular por endpoint",type:"Preventivo",desc:"Definir permissões explícitas por endpoint e método HTTP.",ref:"OWASP API5:2023"},
+               {id:"API5-C2",name:"Inventário de endpoints atualizado",type:"Detetivo",desc:"Manter API inventory com classificação de sensibilidade.",ref:"OWASP API9:2023"}]},
+      {id:"API6",name:"Unrestricted Access to Sensitive Business Flows",cia:"CIA",desc:"APIs expõem fluxos de negócio sensíveis sem proteção adequada.",
+        ctrls:[{id:"API6-C1",name:"Deteção de abuso de fluxo de negócio",type:"Detetivo",desc:"Monitorizar padrões anómalos (ex: compras em massa, scraping).",ref:"OWASP API6:2023"},
+               {id:"API6-C2",name:"CAPTCHA e deteção de bots",type:"Preventivo",desc:"Proteger fluxos críticos contra automação maliciosa.",ref:"CIS Control 13"}]},
+      {id:"API7",name:"Server Side Request Forgery",cia:"C",desc:"API obtém recursos remotos a partir de URL fornecida pelo utilizador sem validação.",
+        ctrls:[{id:"API7-C1",name:"Allowlist de destinos externos",type:"Preventivo",desc:"Validar URLs contra uma allowlist de destinos permitidos.",ref:"OWASP SSRF Prevention"}]},
+      {id:"API8",name:"Security Misconfiguration",cia:"CIA",desc:"Configurações inseguras — TLS, headers, CORS, mensagens de erro.",
+        ctrls:[{id:"API8-C1",name:"Security headers (CORS, CSP, HSTS)",type:"Preventivo",desc:"Configurar headers de segurança em todas as respostas da API.",ref:"OWASP Secure Headers"},
+               {id:"API8-C2",name:"Desativar métodos HTTP desnecessários",type:"Preventivo",desc:"Apenas permitir GET/POST/PUT/DELETE conforme necessário.",ref:"CIS Control 4"}]},
+      {id:"API9",name:"Improper Inventory Management",cia:"CIA",desc:"Endpoints não documentados, versões antigas expostas.",
+        ctrls:[{id:"API9-C1",name:"API Gateway com gestão de versões",type:"Preventivo",desc:"Usar API Gateway para controlar versões e desativar endpoints deprecated.",ref:"OWASP API9:2023"},
+               {id:"API9-C2",name:"OpenAPI/Swagger atualizado e revisto",type:"Detetivo",desc:"Manter documentação da API sincronizada com a implementação.",ref:"OpenAPI Specification"}]},
+      {id:"API10",name:"Unsafe Consumption of APIs",cia:"CIA",desc:"Confiança excessiva em dados de APIs de terceiros sem validação adequada.",
+        ctrls:[{id:"API10-C1",name:"Validação de dados de APIs externas",type:"Preventivo",desc:"Tratar respostas de APIs externas como input não confiável.",ref:"OWASP API10:2023"},
+               {id:"API10-C2",name:"Gestão de dependências de terceiros",type:"Preventivo",desc:"Monitorizar SLAs e incidentes de segurança de fornecedores API.",ref:"NIST SP 800-161"}]}
     ]
   },
   "CIS Top 18": {
-    id: "cis-18", color: "#0369a1",
-    desc: "Os 18 controlos críticos de segurança do CIS para infraestrutura e operações.",
-    risks: [
-      {id:"CIS1",name:"Inventário não controlado de ativos",cia:"CIA",desc:"Falta de inventário atualizado de hardware e software — shadow IT e ativos não geridos.",ctrls:["C-006","C-011"]},
-      {id:"CIS2",name:"Configurações inseguras de software",cia:"CIA",desc:"Configurações por omissão ou inadequadas em sistemas operativos, aplicações e dispositivos.",ctrls:["C-006","C-008"]},
-      {id:"CIS3",name:"Proteção de dados inadequada",cia:"C",desc:"Ausência de encriptação, classificação e controlos de acesso adequados para dados sensíveis.",ctrls:["C-004","C-005","C-010"]},
-      {id:"CIS4",name:"Exposição de serviços de rede",cia:"CIA",desc:"Serviços e portos de rede expostos desnecessariamente, aumentando a superfície de ataque.",ctrls:["C-008","C-006"]},
-      {id:"CIS5",name:"Gestão de acessos privilegiados deficiente",cia:"CIA",desc:"Contas privilegiadas sem controlo adequado, MFA, ou revisão periódica.",ctrls:["C-001","C-002","C-011"]},
-      {id:"CIS6",name:"Gestão de acessos de utilizadores fraca",cia:"C",desc:"Ausência de gestão do ciclo de vida de contas, permissões excessivas e acesso sem necessidade.",ctrls:["C-001","C-011"]},
-      {id:"CIS7",name:"Gestão de vulnerabilidades ineficaz",cia:"CIA",desc:"Ausência de processo de scanning, priorização e remediação de vulnerabilidades.",ctrls:["C-006","C-012"]},
-      {id:"CIS8",name:"Gestão de logs e auditoria insuficiente",cia:"CIA",desc:"Logs insuficientes, não centralizados ou sem análise — dificultando deteção de incidentes.",ctrls:["C-003","C-009"]},
-      {id:"CIS9",name:"Proteção de email e web inadequada",cia:"CIA",desc:"Ausência de filtros anti-phishing, anti-malware e controlo de conteúdo web.",ctrls:["C-009","C-003"]},
-      {id:"CIS10",name:"Defesas contra malware insuficientes",cia:"CIA",desc:"Proteção inadequada contra malware, ransomware e código malicioso.",ctrls:["C-007","C-009"]},
+    id:"cis-18", color:"#0369a1",
+    desc:"Os 18 controlos críticos de segurança do CIS para infraestrutura e operações.",
+    risks:[
+      {id:"CIS1",name:"Inventário não controlado de ativos",cia:"CIA",desc:"Falta de inventário atualizado de hardware e software.",
+        ctrls:[{id:"CIS1-C1",name:"CMDB — Configuration Management Database",type:"Preventivo",desc:"Manter inventário centralizado e atualizado de todos os ativos.",ref:"CIS Control 1"},
+               {id:"CIS1-C2",name:"Descoberta automática de ativos",type:"Detetivo",desc:"Usar ferramentas de discovery para detetar ativos não registados.",ref:"CIS Control 1.4"}]},
+      {id:"CIS2",name:"Configurações inseguras de software",cia:"CIA",desc:"Configurações por omissão ou inadequadas em sistemas e aplicações.",
+        ctrls:[{id:"CIS2-C1",name:"Baseline de configuração segura",type:"Preventivo",desc:"Definir e aplicar configurações base seguras para todos os sistemas.",ref:"CIS Control 4"},
+               {id:"CIS2-C2",name:"Conformidade de configuração contínua",type:"Detetivo",desc:"Monitorizar desvios à baseline com ferramentas de compliance.",ref:"CIS Control 4.2"}]},
+      {id:"CIS3",name:"Proteção de dados inadequada",cia:"C",desc:"Ausência de encriptação, classificação e controlos de dados sensíveis.",
+        ctrls:[{id:"CIS3-C1",name:"Classificação e inventário de dados",type:"Preventivo",desc:"Classificar dados por sensibilidade e aplicar controlos adequados.",ref:"CIS Control 3"},
+               {id:"CIS3-C2",name:"DLP — Prevenção de fuga de dados",type:"Preventivo",desc:"Implementar DLP para monitorizar e bloquear exfiltração.",ref:"CIS Control 3.13"}]},
+      {id:"CIS4",name:"Exposição de serviços de rede",cia:"CIA",desc:"Serviços e portos de rede expostos desnecessariamente.",
+        ctrls:[{id:"CIS4-C1",name:"Firewall com deny-by-default",type:"Preventivo",desc:"Bloquear todo o tráfego por defeito e permitir apenas o necessário.",ref:"CIS Control 12"},
+               {id:"CIS4-C2",name:"Scan periódico de portos expostos",type:"Detetivo",desc:"Scanning regular de portos e serviços expostos.",ref:"CIS Control 12.8"}]},
+      {id:"CIS5",name:"Gestão de acessos privilegiados deficiente",cia:"CIA",desc:"Contas privilegiadas sem controlo adequado, MFA, ou revisão periódica.",
+        ctrls:[{id:"CIS5-C1",name:"PAM — Privileged Access Management",type:"Preventivo",desc:"Usar solução PAM para gerir e auditar acessos privilegiados.",ref:"CIS Control 5"},
+               {id:"CIS5-C2",name:"MFA para acessos privilegiados",type:"Preventivo",desc:"MFA obrigatório para todas as contas administrativas.",ref:"CIS Control 5.3"},
+               {id:"CIS5-C3",name:"Revisão trimestral de contas privilegiadas",type:"Detetivo",desc:"Revisão e recertificação de acessos privilegiados.",ref:"CIS Control 5.4"}]},
+      {id:"CIS6",name:"Gestão de acessos de utilizadores fraca",cia:"C",desc:"Ausência de gestão do ciclo de vida de contas.",
+        ctrls:[{id:"CIS6-C1",name:"Processo de onboarding/offboarding",type:"Preventivo",desc:"Procedimentos formais de criação e revogação de acessos.",ref:"CIS Control 6"},
+               {id:"CIS6-C2",name:"Revisão semestral de acessos",type:"Detetivo",desc:"Recertificação semestral de todos os acessos de utilizadores.",ref:"CIS Control 6.2"}]},
+      {id:"CIS7",name:"Gestão de vulnerabilidades ineficaz",cia:"CIA",desc:"Ausência de processo de scanning e remediação de vulnerabilidades.",
+        ctrls:[{id:"CIS7-C1",name:"Scan de vulnerabilidades semanal",type:"Detetivo",desc:"Scanning automatizado de vulnerabilidades com ferramentas como Tenable/Qualys.",ref:"CIS Control 7"},
+               {id:"CIS7-C2",name:"SLAs de patching por criticidade",type:"Preventivo",desc:"Crítico: 24h, Alto: 7 dias, Médio: 30 dias.",ref:"CIS Control 7.4"}]},
+      {id:"CIS8",name:"Gestão de logs e auditoria insuficiente",cia:"CIA",desc:"Logs insuficientes ou sem análise.",
+        ctrls:[{id:"CIS8-C1",name:"Centralização de logs (SIEM)",type:"Detetivo",desc:"Centralizar todos os logs em SIEM com retenção mínima de 90 dias.",ref:"CIS Control 8"},
+               {id:"CIS8-C2",name:"Alertas automáticos para eventos críticos",type:"Detetivo",desc:"Configurar alertas para eventos de segurança críticos.",ref:"CIS Control 8.11"}]},
+      {id:"CIS9",name:"Proteção de email e web inadequada",cia:"CIA",desc:"Ausência de filtros anti-phishing e controlo de conteúdo web.",
+        ctrls:[{id:"CIS9-C1",name:"Filtro anti-phishing e anti-malware",type:"Preventivo",desc:"Gateway de email com filtragem de ameaças avançada.",ref:"CIS Control 9"},
+               {id:"CIS9-C2",name:"Proxy web com filtragem de conteúdo",type:"Preventivo",desc:"Filtrar tráfego web e bloquear categorias maliciosas.",ref:"CIS Control 9.3"}]},
+      {id:"CIS10",name:"Defesas contra malware insuficientes",cia:"CIA",desc:"Proteção inadequada contra malware e ransomware.",
+        ctrls:[{id:"CIS10-C1",name:"EDR — Endpoint Detection and Response",type:"Detetivo",desc:"Implementar EDR em todos os endpoints.",ref:"CIS Control 10"},
+               {id:"CIS10-C2",name:"Backups offline testados",type:"Resposta",desc:"Backups offline com testes de restauro trimestrais.",ref:"CIS Control 11.4"}]}
     ]
   },
   "ISO 27001 Annex A": {
-    id: "iso-27001", color: "#065f46",
-    desc: "Riscos mapeados aos controlos do Anexo A da ISO/IEC 27001:2022 (93 controlos em 4 domínios).",
-    risks: [
-      {id:"5.x",name:"Políticas e organização de segurança",cia:"CIA",desc:"Ausência ou inadequação de políticas, responsabilidades e organização para a gestão da segurança.",ctrls:["C-009","C-011"]},
-      {id:"6.x",name:"Gestão de recursos humanos",cia:"CIA",desc:"Riscos associados a colaboradores — formação insuficiente, ameaça interna, saída sem revogação de acessos.",ctrls:["C-001","C-011"]},
-      {id:"7.x",name:"Segurança física e ambiental",cia:"CIA",desc:"Acesso físico não autorizado a instalações e equipamentos, destruição ou roubo de ativos.",ctrls:["C-007"]},
-      {id:"8.1",name:"Gestão de ativos e inventário",cia:"CIA",desc:"Ativos de informação não identificados, classificados ou geridos adequadamente.",ctrls:["C-006","C-011"]},
-      {id:"8.2",name:"Controlo de acessos e identidade",cia:"C",desc:"Acessos não autorizados por falhas em autenticação, autorização ou gestão de identidades.",ctrls:["C-001","C-002","C-011"]},
-      {id:"8.3",name:"Proteção contra malware",cia:"CIA",desc:"Infeção por malware, ransomware ou código malicioso com impacto em dados e operações.",ctrls:["C-007","C-009"]},
-      {id:"8.4",name:"Backup e recuperação",cia:"A",desc:"Perda de dados por ausência ou falha de backups e procedimentos de recuperação.",ctrls:["C-007"]},
-      {id:"8.5",name:"Criptografia inadequada",cia:"C",desc:"Dados sensíveis não protegidos por encriptação adequada em repouso ou em trânsito.",ctrls:["C-004","C-005"]},
-      {id:"8.6",name:"Segurança de redes e comunicações",cia:"CIA",desc:"Ausência de segmentação, monitorização e controlos de rede adequados.",ctrls:["C-008","C-003"]},
-      {id:"8.7",name:"Gestão de incidentes de segurança",cia:"CIA",desc:"Ausência de processo de deteção, resposta e lições aprendidas de incidentes de segurança.",ctrls:["C-003","C-009"]},
+    id:"iso-27001", color:"#065f46",
+    desc:"Riscos mapeados aos controlos do Anexo A da ISO/IEC 27001:2022.",
+    risks:[
+      {id:"5.x",name:"Políticas e organização de segurança",cia:"CIA",desc:"Ausência ou inadequação de políticas e organização para a gestão da segurança.",
+        ctrls:[{id:"ISO5-C1",name:"Política de segurança da informação",type:"Preventivo",desc:"Política aprovada pela gestão, publicada e comunicada.",ref:"ISO 27001 A.5.1"},
+               {id:"ISO5-C2",name:"Papéis e responsabilidades de segurança",type:"Preventivo",desc:"Definir e atribuir responsabilidades de segurança.",ref:"ISO 27001 A.5.2"}]},
+      {id:"6.x",name:"Gestão de recursos humanos",cia:"CIA",desc:"Riscos associados a colaboradores — formação insuficiente, ameaça interna.",
+        ctrls:[{id:"ISO6-C1",name:"Formação e consciencialização de segurança",type:"Preventivo",desc:"Programa anual de formação em segurança para todos os colaboradores.",ref:"ISO 27001 A.6.3"},
+               {id:"ISO6-C2",name:"Procedimento de offboarding seguro",type:"Preventivo",desc:"Revogação imediata de acessos na saída de colaboradores.",ref:"ISO 27001 A.6.5"}]},
+      {id:"7.x",name:"Segurança física e ambiental",cia:"CIA",desc:"Acesso físico não autorizado a instalações e equipamentos.",
+        ctrls:[{id:"ISO7-C1",name:"Controlo de acesso físico (crachás, biometria)",type:"Preventivo",desc:"Controlo de acesso físico a zonas restritas.",ref:"ISO 27001 A.7.2"},
+               {id:"ISO7-C2",name:"CCTV e monitorização de instalações",type:"Detetivo",desc:"Videovigilância de áreas críticas com retenção adequada.",ref:"ISO 27001 A.7.4"}]},
+      {id:"8.1",name:"Gestão de ativos e inventário",cia:"CIA",desc:"Ativos de informação não identificados, classificados ou geridos.",
+        ctrls:[{id:"ISO8-C1",name:"Inventário de ativos de informação",type:"Preventivo",desc:"Manter registo de todos os ativos de informação com proprietário.",ref:"ISO 27001 A.8.1"},
+               {id:"ISO8-C2",name:"Classificação de informação",type:"Preventivo",desc:"Esquema de classificação (Público, Interno, Confidencial, Restrito).",ref:"ISO 27001 A.8.2"}]},
+      {id:"8.2",name:"Controlo de acessos e identidade",cia:"C",desc:"Acessos não autorizados por falhas em autenticação ou gestão de identidades.",
+        ctrls:[{id:"ISO82-C1",name:"Política de controlo de acesso",type:"Preventivo",desc:"Política de acesso baseada no princípio do menor privilégio.",ref:"ISO 27001 A.8.3"},
+               {id:"ISO82-C2",name:"Gestão de identidades e acessos (IAM)",type:"Preventivo",desc:"Sistema centralizado de gestão de identidades.",ref:"ISO 27001 A.8.5"}]},
+      {id:"8.3",name:"Proteção contra malware",cia:"CIA",desc:"Infeção por malware com impacto em dados e operações.",
+        ctrls:[{id:"ISO83-C1",name:"Antivirus/EDR em todos os endpoints",type:"Preventivo",desc:"Proteção contra malware com atualizações automáticas.",ref:"ISO 27001 A.8.7"},
+               {id:"ISO83-C2",name:"Controlo de execução de software",type:"Preventivo",desc:"Application whitelisting para bloquear software não autorizado.",ref:"ISO 27001 A.8.7"}]},
+      {id:"8.4",name:"Backup e recuperação",cia:"A",desc:"Perda de dados por ausência ou falha de backups.",
+        ctrls:[{id:"ISO84-C1",name:"Política de backup 3-2-1",type:"Preventivo",desc:"3 cópias, 2 meios diferentes, 1 offsite.",ref:"ISO 27001 A.8.13"},
+               {id:"ISO84-C2",name:"Testes de restauro trimestrais",type:"Detetivo",desc:"Testar e documentar restauros de backup trimestralmente.",ref:"ISO 27001 A.8.13"}]},
+      {id:"8.5",name:"Criptografia inadequada",cia:"C",desc:"Dados sensíveis não protegidos por encriptação adequada.",
+        ctrls:[{id:"ISO85-C1",name:"Política de criptografia",type:"Preventivo",desc:"Definir algoritmos aprovados e gestão de chaves.",ref:"ISO 27001 A.8.24"},
+               {id:"ISO85-C2",name:"Gestão de chaves criptográficas",type:"Preventivo",desc:"HSM ou KMS para gestão segura de chaves.",ref:"ISO 27001 A.8.24"}]},
+      {id:"8.6",name:"Segurança de redes e comunicações",cia:"CIA",desc:"Ausência de segmentação, monitorização e controlos de rede.",
+        ctrls:[{id:"ISO86-C1",name:"Segmentação de rede por criticidade",type:"Preventivo",desc:"Separar redes por zonas de segurança (DMZ, produção, gestão).",ref:"ISO 27001 A.8.20"},
+               {id:"ISO86-C2",name:"IDS/IPS em segmentos críticos",type:"Detetivo",desc:"Deteção e prevenção de intrusões em segmentos críticos.",ref:"ISO 27001 A.8.20"}]},
+      {id:"8.7",name:"Gestão de incidentes de segurança",cia:"CIA",desc:"Ausência de processo de deteção e resposta a incidentes.",
+        ctrls:[{id:"ISO87-C1",name:"Plano de resposta a incidentes",type:"Resposta",desc:"IRP documentado com papéis, procedimentos e contactos.",ref:"ISO 27001 A.5.26"},
+               {id:"ISO87-C2",name:"Simulacros de incidente anuais",type:"Resposta",desc:"Exercícios de tabletop ou simulação de incidentes.",ref:"ISO 27001 A.5.26"}]}
     ]
   },
   "NIST SP 800-53": {
-    id: "nist-800-53", color: "#1e40af",
-    desc: "Riscos baseados nas famílias de controlos do NIST SP 800-53 Rev. 5 para sistemas cloud e críticos.",
-    risks: [
-      {id:"AC",name:"Controlo de Acesso (Access Control)",cia:"C",desc:"Falhas nas políticas e mecanismos de controlo de acesso — AC-1 a AC-25.",ctrls:["C-001","C-002","C-011"]},
-      {id:"AU",name:"Auditoria e Responsabilização (Audit)",cia:"CIA",desc:"Logs insuficientes, não protegidos ou sem revisão — AU-1 a AU-16.",ctrls:["C-003","C-011"]},
-      {id:"CM",name:"Gestão de Configurações (Config Mgmt)",cia:"CIA",desc:"Configurações não geridas, baseline desconhecida, mudanças sem controlo — CM-1 a CM-14.",ctrls:["C-006","C-008"]},
-      {id:"CP",name:"Planeamento de Contingência",cia:"A",desc:"Ausência de planos de contingência, backups ou testes de recuperação — CP-1 a CP-13.",ctrls:["C-007","C-009"]},
-      {id:"IA",name:"Identificação e Autenticação",cia:"C",desc:"Mecanismos de autenticação fracos, sem MFA ou gestão inadequada de credenciais — IA-1 a IA-13.",ctrls:["C-001","C-002"]},
-      {id:"IR",name:"Resposta a Incidentes",cia:"CIA",desc:"Capacidade de resposta a incidentes inadequada — deteção, contenção e recuperação — IR-1 a IR-10.",ctrls:["C-003","C-009"]},
-      {id:"RA",name:"Avaliação de Risco",cia:"CIA",desc:"Ausência de processo formal de avaliação e monitorização contínua do risco — RA-1 a RA-10.",ctrls:["C-012","C-011"]},
-      {id:"SC",name:"Proteção de Sistemas e Comunicações",cia:"CIA",desc:"Falhas na separação de fronteiras, encriptação e proteção de comunicações — SC-1 a SC-51.",ctrls:["C-005","C-008"]},
-      {id:"SI",name:"Integridade de Sistemas e Informação",cia:"I",desc:"Ausência de deteção de malware, monitorização de integridade e gestão de patches — SI-1 a SI-23.",ctrls:["C-006","C-003"]},
-      {id:"SR",name:"Gestão de Risco na Supply Chain",cia:"CIA",desc:"Riscos de terceiros, componentes comprometidos e dependências não geridas — SR-1 a SR-12.",ctrls:["C-006","C-011"]},
+    id:"nist-800-53", color:"#1e40af",
+    desc:"Riscos baseados nas famílias de controlos do NIST SP 800-53 Rev. 5.",
+    risks:[
+      {id:"AC",name:"Controlo de Acesso",cia:"C",desc:"Falhas nas políticas e mecanismos de controlo de acesso — AC-1 a AC-25.",
+        ctrls:[{id:"AC-C1",name:"Política de controlo de acesso (AC-1)",type:"Preventivo",desc:"Documentar e implementar política de controlo de acesso.",ref:"NIST SP 800-53 AC-1"},
+               {id:"AC-C2",name:"Separação de funções (AC-5)",type:"Preventivo",desc:"Separar funções incompatíveis para evitar conflitos de interesse.",ref:"NIST SP 800-53 AC-5"},
+               {id:"AC-C3",name:"Princípio do menor privilégio (AC-6)",type:"Preventivo",desc:"Atribuir apenas os privilégios estritamente necessários.",ref:"NIST SP 800-53 AC-6"}]},
+      {id:"AU",name:"Auditoria e Responsabilização",cia:"CIA",desc:"Logs insuficientes, não protegidos ou sem revisão.",
+        ctrls:[{id:"AU-C1",name:"Geração de logs de auditoria (AU-2)",type:"Detetivo",desc:"Definir e implementar eventos auditáveis.",ref:"NIST SP 800-53 AU-2"},
+               {id:"AU-C2",name:"Proteção e retenção de logs (AU-9)",type:"Preventivo",desc:"Proteger logs contra modificação e garantir retenção adequada.",ref:"NIST SP 800-53 AU-9"}]},
+      {id:"CM",name:"Gestão de Configurações",cia:"CIA",desc:"Configurações não geridas, baseline desconhecida.",
+        ctrls:[{id:"CM-C1",name:"Baseline de configuração (CM-2)",type:"Preventivo",desc:"Estabelecer e manter configurações base documentadas.",ref:"NIST SP 800-53 CM-2"},
+               {id:"CM-C2",name:"Controlo de mudanças (CM-3)",type:"Preventivo",desc:"Processo formal de gestão de mudanças de configuração.",ref:"NIST SP 800-53 CM-3"}]},
+      {id:"CP",name:"Planeamento de Contingência",cia:"A",desc:"Ausência de planos de contingência, backups ou testes de recuperação.",
+        ctrls:[{id:"CP-C1",name:"Plano de contingência (CP-2)",type:"Resposta",desc:"Plano de contingência com RTO/RPO definidos e testados.",ref:"NIST SP 800-53 CP-2"},
+               {id:"CP-C2",name:"Backups e restauro (CP-9)",type:"Resposta",desc:"Backups automáticos com testes periódicos de restauro.",ref:"NIST SP 800-53 CP-9"}]},
+      {id:"IA",name:"Identificação e Autenticação",cia:"C",desc:"Mecanismos de autenticação fracos ou sem MFA.",
+        ctrls:[{id:"IA-C1",name:"MFA para acesso ao sistema (IA-2)",type:"Preventivo",desc:"Autenticação multifator para todos os utilizadores.",ref:"NIST SP 800-53 IA-2"},
+               {id:"IA-C2",name:"Gestão de autenticadores (IA-5)",type:"Preventivo",desc:"Política de gestão de credenciais e tokens.",ref:"NIST SP 800-53 IA-5"}]},
+      {id:"IR",name:"Resposta a Incidentes",cia:"CIA",desc:"Capacidade de resposta a incidentes inadequada.",
+        ctrls:[{id:"IR-C1",name:"Política de resposta a incidentes (IR-1)",type:"Resposta",desc:"Política e procedimentos de resposta a incidentes documentados.",ref:"NIST SP 800-53 IR-1"},
+               {id:"IR-C2",name:"Testes do plano de resposta (IR-3)",type:"Resposta",desc:"Exercícios e simulações de resposta a incidentes.",ref:"NIST SP 800-53 IR-3"}]},
+      {id:"RA",name:"Avaliação de Risco",cia:"CIA",desc:"Ausência de processo formal de avaliação e monitorização do risco.",
+        ctrls:[{id:"RA-C1",name:"Processo de avaliação de risco (RA-3)",type:"Preventivo",desc:"Metodologia de avaliação de risco documentada e aplicada.",ref:"NIST SP 800-53 RA-3"},
+               {id:"RA-C2",name:"Monitorização contínua (RA-10)",type:"Detetivo",desc:"Programa de monitorização contínua da postura de segurança.",ref:"NIST SP 800-53 RA-10"}]},
+      {id:"SC",name:"Proteção de Sistemas e Comunicações",cia:"CIA",desc:"Falhas na separação de fronteiras e encriptação.",
+        ctrls:[{id:"SC-C1",name:"Proteção de fronteiras de rede (SC-7)",type:"Preventivo",desc:"Firewalls e proxies nas fronteiras de rede.",ref:"NIST SP 800-53 SC-7"},
+               {id:"SC-C2",name:"Encriptação em trânsito (SC-8)",type:"Preventivo",desc:"Encriptar todas as comunicações em redes públicas.",ref:"NIST SP 800-53 SC-8"}]},
+      {id:"SI",name:"Integridade de Sistemas e Informação",cia:"I",desc:"Ausência de monitorização de integridade e gestão de patches.",
+        ctrls:[{id:"SI-C1",name:"Proteção contra malware (SI-3)",type:"Preventivo",desc:"Implementar e manter proteção contra código malicioso.",ref:"NIST SP 800-53 SI-3"},
+               {id:"SI-C2",name:"Gestão de patches (SI-2)",type:"Preventivo",desc:"Identificar, priorizar e aplicar patches de segurança.",ref:"NIST SP 800-53 SI-2"}]},
+      {id:"SR",name:"Gestão de Risco na Supply Chain",cia:"CIA",desc:"Riscos de terceiros e componentes comprometidos.",
+        ctrls:[{id:"SR-C1",name:"Política de segurança de fornecedores (SR-3)",type:"Preventivo",desc:"Requisitos de segurança contratuais para fornecedores críticos.",ref:"NIST SP 800-53 SR-3"},
+               {id:"SR-C2",name:"Avaliação periódica de fornecedores (SR-6)",type:"Detetivo",desc:"Avaliações de segurança regulares de fornecedores.",ref:"NIST SP 800-53 SR-6"}]}
     ]
   }
 };
@@ -1338,49 +1442,41 @@ function delRisk(id){if(confirm("Remover este risco?")){risks=risks.filter(r=>r.
 // CONTROLS
 // ════════════════════════════════════════════════════════════════════
 function renderControls(){
-  // Build consolidated list: global controls + controls from all custom libraries
-  const allCtrls=[];
-  const seen=new Set();
-
-  // Global controls
-  globalCtrls.forEach(c=>{
-    allCtrls.push({...c, _source:"Global"});
-    seen.add(c.id);
-  });
-
-  // Custom library controls (deduplicated by ID)
-  Object.entries(customLibs).forEach(([libName, lib])=>{
-    if(!lib.customCtrls) return;
-    Object.values(lib.customCtrls).forEach(c=>{
-      if(!seen.has(c.id)){
-        allCtrls.push({...c, fw:c.ref||c.fw||"", _source:libName});
-        seen.add(c.id);
-      }
+  // Build flat list: all ctrl objects from all libs, grouped by lib
+  const rows=[];
+  Object.entries({...LIBS,...customLibs}).forEach(([libName,lib])=>{
+    lib.risks.forEach(r=>{
+      (r.ctrls||[]).forEach(c=>{
+        const co=typeof c==='object'?c:{id:c,name:c,type:'Preventivo',desc:'',ref:''};
+        const isEditable=!!customLibs[libName]||(typeof lib._editable!=='undefined'?lib._editable:false);
+        rows.push({...co,_lib:libName,_risk:r.id,_riskName:r.name,_editable:true});
+      });
     });
   });
 
-  document.getElementById("ctrlTable").innerHTML=allCtrls.map(c=>{
+  if(!rows.length){
+    document.getElementById("ctrlTable").innerHTML=`<tr><td colspan="7" class="empty">Nenhum controlo definido.</td></tr>`;
+    return;
+  }
+  document.getElementById("ctrlTable").innerHTML=rows.map(c=>{
     const assoc=risks.filter(r=>r.controls&&r.controls.includes(c.id));
-    const isGlobal=c._source==="Global";
     return`<tr>
       <td class="rid">${c.id}</td>
-      <td style="font-weight:600">${c.name}${c.desc?`<div style="font-size:11px;color:var(--muted);font-weight:400;margin-top:2px">${c.desc}</div>`:""}</td>
+      <td style="font-weight:600;max-width:160px">${c.name}${c.desc?`<div style="font-size:11px;color:var(--muted);font-weight:400">${c.desc}</div>`:''}</td>
       <td><span class="ct ${ctc(c.type)}">${c.type}</span></td>
-      <td style="font-size:12px;color:var(--muted)">${c.fw||"—"}</td>
-      <td style="font-size:12px">
-        <span class="tag" style="font-size:10px">${c._source}</span>
-      </td>
-      <td style="font-size:12px">${assoc.length?assoc.map(r=>`<span class="rid">${r.id}</span> `).join(""):"—"}</td>
+      <td style="font-size:11px;color:var(--muted)">${c.ref||c.fw||'—'}</td>
+      <td style="font-size:11px"><span class="b-lib">${c._lib}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${c._riskName}</td>
+      <td style="font-size:12px">${assoc.length?assoc.map(r=>`<span class="rid">${r.id}</span> `).join(''):'—'}</td>
       <td style="white-space:nowrap">
-        ${isGlobal
-          ?`<button class="btn btn-sm" onclick="openCtrlEdit('${c.id}')">Editar</button>
-             <button class="btn btn-sm btn-danger" onclick="deleteCtrl('${c.id}')">✕</button>`
-          :`<span style="font-size:11px;color:var(--muted)">Editar na biblioteca</span>`
-        }
+        <button class="btn btn-sm" data-lib="${c._lib}" data-risk="${c._risk}" data-ctrl="${c.id}" onclick="ctrlTableEdit(this)">Editar</button>
+        <button class="btn btn-sm btn-danger" data-lib="${c._lib}" data-risk="${c._risk}" data-ctrl="${c.id}" onclick="ctrlTableDelete(this)">✕</button>
       </td>
     </tr>`;
   }).join("");
 }
+function ctrlTableEdit(btn){openLibCtrlEdit(btn.dataset.lib,btn.dataset.risk,btn.dataset.ctrl);}
+function ctrlTableDelete(btn){deleteLibCtrl(btn.dataset.lib,btn.dataset.ctrl);}
 
 function openCtrlAdd(){
   editCtrlId=null;
@@ -1404,6 +1500,15 @@ function openCtrlEdit(id){
 }
 function openLibCtrlAdd(libName, riskId){
   editCtrlId=null; editCtrlLib=libName; editCtrlRiskId=riskId;
+  // Auto-generate next ID for this lib
+  const lib=allLibs()[libName];
+  if(lib){
+    const allIds=(lib.risks||[]).flatMap(r=>(r.ctrls||[]).map(c=>typeof c==='object'?c.id:c));
+    const prefix=(lib.id||libName.slice(0,4).toUpperCase().replace(/[^A-Z0-9]/g,''))+'-C';
+    let n=allIds.length+1;
+    while(allIds.includes(prefix+n)) n++;
+    setTimeout(()=>{const el=document.getElementById('gc-id');if(el)el.value=prefix+n;},50);
+  }
   document.getElementById("ctrlMTitle").textContent="Novo controlo — "+libName;
   ["gc-id","gc-name","gc-desc","gc-fw"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("gc-type").value="Preventivo";
@@ -1413,16 +1518,19 @@ function openLibCtrlAdd(libName, riskId){
   document.getElementById("ctrlModal").classList.add("open");
 }
 function openLibCtrlEdit(libName, riskId, ctrlId){
-  const lib=allLibs()[libName];
-  const c=lib&&lib.customCtrls&&lib.customCtrls[ctrlId];
-  if(!c)return;
+  const lib=allLibs()[libName]; if(!lib)return;
+  const risk=lib.risks.find(r=>r.id===riskId)||lib.risks.find(r=>(r.ctrls||[]).some(c=>(typeof c==='object'?c.id:c)===ctrlId));
+  const c=risk&&(risk.ctrls||[]).find(c=>(typeof c==='object'?c.id:c)===ctrlId);
+  const co=c&&typeof c==='object'?c:{id:ctrlId,name:ctrlId,type:'Preventivo',desc:'',ref:''};
+  if(!co)return;
+  const dummyC=co;
   editCtrlId=ctrlId; editCtrlLib=libName; editCtrlRiskId=riskId;
   document.getElementById("ctrlMTitle").textContent="Editar controlo — "+ctrlId;
-  document.getElementById("gc-id").value=c.id;
-  document.getElementById("gc-name").value=c.name;
-  document.getElementById("gc-desc").value=c.desc||"";
-  document.getElementById("gc-type").value=c.type||"Preventivo";
-  document.getElementById("gc-fw").value=c.ref||c.fw||"";
+  document.getElementById("gc-id").value=dummyC.id;
+  document.getElementById("gc-name").value=dummyC.name;
+  document.getElementById("gc-desc").value=dummyC.desc||"";
+  document.getElementById("gc-type").value=dummyC.type||"Preventivo";
+  document.getElementById("gc-fw").value=dummyC.ref||dummyC.fw||"";
   const libLabel=document.getElementById("gc-lib");
   libLabel.style.display="block";
   libLabel.textContent="Biblioteca: "+libName;
@@ -1437,22 +1545,31 @@ function saveCtrl(){
   if(!name){alert("O nome é obrigatório.");return;}
 
   if(editCtrlLib){
-    // Save to custom library
-    const lib=customLibs[editCtrlLib];if(!lib)return;
-    if(!lib.customCtrls)lib.customCtrls={};
-    const c={id:id||editCtrlId||"C-?",name,desc:document.getElementById("gc-desc").value.trim(),type:document.getElementById("gc-type").value,ref:document.getElementById("gc-fw").value.trim()};
-    // If riskId specified, also add to that risk ctrls array
-    if(editCtrlRiskId&&!editCtrlId){
-      const risk=lib.risks.find(r=>r.id===editCtrlRiskId);
-      if(risk&&!risk.ctrls.includes(c.id)) risk.ctrls.push(c.id);
+    const lib=allLibs()[editCtrlLib]; if(!lib)return;
+    const newCtrl={id:id||editCtrlId||("C-"+(Date.now()%10000)),name,
+      desc:document.getElementById("gc-desc").value.trim(),
+      type:document.getElementById("gc-type").value,
+      ref:document.getElementById("gc-fw").value.trim()};
+    if(editCtrlId){
+      // Edit: update ctrl object in place across all risks in this lib
+      lib.risks.forEach(r=>{
+        const idx=(r.ctrls||[]).findIndex(c=>(typeof c==='object'?c.id:c)===editCtrlId);
+        if(idx>=0) r.ctrls[idx]=newCtrl;
+      });
+      // Also update in customLibs if native (make editable copy)
+      if(!customLibs[editCtrlLib] && LIBS[editCtrlLib]){
+        // Convert native lib to editable by copying it into customLibs
+        customLibs[editCtrlLib]=JSON.parse(JSON.stringify(LIBS[editCtrlLib]));
+        const risk2=customLibs[editCtrlLib].risks.find(r=>(r.ctrls||[]).some(c=>(typeof c==='object'?c.id:c)===editCtrlId));
+        if(risk2){const idx2=risk2.ctrls.findIndex(c=>(typeof c==='object'?c.id:c)===editCtrlId);if(idx2>=0)risk2.ctrls[idx2]=newCtrl;}
+      }
+    } else if(editCtrlRiskId){
+      // Add new ctrl to specific risk
+      const targetLib=customLibs[editCtrlLib]||(customLibs[editCtrlLib]=JSON.parse(JSON.stringify(LIBS[editCtrlLib]||lib)));
+      const risk=targetLib.risks.find(r=>r.id===editCtrlRiskId);
+      if(risk){if(!risk.ctrls)risk.ctrls=[];risk.ctrls.push(newCtrl);}
     }
-    // If renaming id, update all risk ctrls arrays in this lib
-    if(editCtrlId&&editCtrlId!==c.id){
-      delete lib.customCtrls[editCtrlId];
-      lib.risks.forEach(r=>{const i=r.ctrls.indexOf(editCtrlId);if(i>=0)r.ctrls[i]=c.id;});
-    }
-    lib.customCtrls[c.id]=c;
-    persistAppData();renderLibraries();renderLibContent();closeCtrlModal();
+    persistAppData();renderLibraries();renderLibContent();renderControls();closeCtrlModal();
     return;
   }
 
@@ -1486,11 +1603,16 @@ function deleteCtrl(id){
 }
 
 function deleteLibCtrl(libName, ctrlId){
-  const lib=customLibs[libName];if(!lib)return;
   if(!confirm(`Remover o controlo "${ctrlId}" da biblioteca "${libName}"?`))return;
-  if(lib.customCtrls) delete lib.customCtrls[ctrlId];
-  lib.risks.forEach(r=>{if(r.ctrls)r.ctrls=r.ctrls.filter(x=>x!==ctrlId);});
-  persistAppData();renderLibContent();
+  // If native lib, copy to customLibs first to make editable
+  if(!customLibs[libName] && LIBS[libName]){
+    customLibs[libName]=JSON.parse(JSON.stringify(LIBS[libName]));
+  }
+  const lib=customLibs[libName]||allLibs()[libName];if(!lib)return;
+  lib.risks.forEach(r=>{
+    if(r.ctrls) r.ctrls=r.ctrls.filter(c=>(typeof c==='object'?c.id:c)!==ctrlId);
+  });
+  persistAppData();renderLibContent();renderControls();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1605,7 +1727,8 @@ function buildMergedRisks(){
     const lib=allLibs()[libName];
     lib.risks.forEach(r=>{
       const key=libName+"::"+r.id;
-      wizIRItems.push({...r,_lib:libName,_key:key,prob:3,impact:3,selectedCtrls:[...r.ctrls]});
+      const rCtrls=(r.ctrls||[]).map(c=>typeof c==='object'?c:{id:c,name:c,type:'Preventivo',desc:'',ref:''});
+      wizIRItems.push({...r,_lib:libName,_key:key,prob:3,impact:3,ctrls:rCtrls,selectedCtrls:rCtrls.map(c=>c.id)});
     });
   });
 }
@@ -1653,13 +1776,11 @@ function renderIRStep(){
   updateIRScore();
   const safeKey=item._key.replace(/[^a-z0-9]/gi,"-");
   document.getElementById("wIRCtrls").innerHTML=
-    item.ctrls.map(cid=>{const c=getCtrlForLib(item._lib,cid);if(!c)return"";
-      return`<div class="ctrl-item"><input type="checkbox" id="wirc-${safeKey}-${cid}" value="${cid}" ${item.selectedCtrls.includes(cid)?"checked":""} onchange="toggleIRCtrl('${cid}',this)"><label style="flex:1;cursor:pointer;font-size:12px"><strong>${c.id}</strong> — ${c.name}</label><span class="ct ${ctc(c.type)}">${c.type}</span></div>`;
-    }).join("")+
-    `<details style="margin-top:8px"><summary style="font-size:12px;color:var(--muted);cursor:pointer;padding:4px 0">+ Outros controlos globais</summary><div style="margin-top:6px">`+
-    globalCtrls.filter(c=>!item.ctrls.includes(c.id)).map(c=>
-      `<div class="ctrl-item"><input type="checkbox" id="wirc2-${safeKey}-${c.id}" value="${c.id}" ${item.selectedCtrls.includes(c.id)?"checked":""} onchange="toggleIRCtrl('${c.id}',this)"><label style="flex:1;cursor:pointer;font-size:12px;color:var(--muted)"><strong>${c.id}</strong> — ${c.name}</label><span class="ct ${ctc(c.type)}">${c.type}</span></div>`
-    ).join("")+`</div></details>`;
+    item.ctrls.map(c=>{
+      const cid=typeof c==='object'?c.id:c;
+      const co=typeof c==='object'?c:getCtrlForLib(item._lib,cid)||{id:cid,name:cid,type:'Preventivo'};
+      return`<div class="ctrl-item"><input type="checkbox" id="wirc-${safeKey}-${cid}" value="${cid}" ${item.selectedCtrls.includes(cid)?"checked":""} onchange="toggleIRCtrl('${cid}',this)"><label style="flex:1;cursor:pointer;font-size:12px"><strong>${co.id}</strong> — ${co.name}</label><span class="ct ${ctc(co.type)}">${co.type}</span></div>`;
+    }).join("");
   document.getElementById("wIRPrev").disabled=(wizIRIdx===0);
   document.getElementById("wIRNext").textContent=wizIRIdx===total-1?"Concluir avaliação →":"Guardar e seguinte →";
 }
@@ -1750,7 +1871,7 @@ function renderCtrlEffStep(){
   }
   document.getElementById("wCtrlNoControls").style.display="none";
   document.getElementById("wCtrlList").innerHTML=item.selectedCtrls.map(cid=>{
-    const c=getCtrlForLib(item._lib,cid)||{id:cid,name:cid,type:"Preventivo"};
+    const c=(item.ctrls||[]).find(x=>(typeof x==="object"?x.id:x)===cid)||getCtrlForLib(item._lib,cid)||{id:cid,name:cid,type:"Preventivo"};
     const eff=item.ctrlEff[cid]??-1; const fb=item.ctrlFeedback[cid]||"";
     return`<div style="border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
@@ -1955,7 +2076,22 @@ function loadAppData(){
     if(d.appUsers && d.appUsers.length) appUsers=d.appUsers;
     if(typeof d.authModeEnabled!=='undefined') authModeEnabled=d.authModeEnabled;
     if(d.globalCtrls && d.globalCtrls.length) globalCtrls=d.globalCtrls;
+    // Migrate old custom libs that may lack customCtrls
+    migrateCustomLibs();
   } catch(e){ console.warn("loadAppData failed",e); }
+}
+
+function migrateCustomLibs(){
+  // Normalise all libs: ensure ctrls are objects, not bare strings/IDs
+  Object.values(customLibs).forEach(lib=>{
+    lib.risks.forEach(r=>{
+      r.ctrls=(r.ctrls||[]).map(c=>
+        typeof c==='object'?c:{id:String(c),name:String(c),type:'Preventivo',desc:'',ref:''}
+      );
+    });
+    // Remove legacy customCtrls map if present
+    delete lib.customCtrls;
+  });
 }
 
 // Export full app state as JSON file (always works, no browser restrictions)
@@ -2042,6 +2178,7 @@ function doImportAppData(data){
   if(data.appUsers)      appUsers=data.appUsers;
   if(typeof data.authModeEnabled!=='undefined') authModeEnabled=data.authModeEnabled;
   if(data.globalCtrls && data.globalCtrls.length) globalCtrls=data.globalCtrls;
+  migrateCustomLibs();
   persistAppData();
   renderDash();renderSystems();renderAnalyses();renderTable();
   renderLibraries();renderControls();renderMatrix();syncSysFilter();renderPlans();renderUsers();
@@ -2368,13 +2505,12 @@ function lwSaveLib(){
     color: m.color,
     desc: m.desc || `Biblioteca personalizada (${m.framework||"custom"})`,
     meta: {...m},
-    customCtrls: libCtrlMap,
     risks: lw.risks.map(r=>({
       id: r.id,
       name: r.name,
       desc: r.desc,
       cia: r.cia,
-      ctrls: r.ctrls.map(c=>c.id), // store IDs
+      ctrls: r.ctrls.map(c=>typeof c==='object'?c:{id:c,name:c,type:'Preventivo',desc:'',ref:''}),
     }))
   };
   activeLib = m.name;
@@ -2405,7 +2541,7 @@ function renderLibraries(){
 function switchLib(name){activeLib=name;renderLibraries();}
 function renderLibContent(){
   const lib=allLibs()[activeLib];
-  const isCustom = !!customLibs[activeLib];
+  const isCustom = true; // all libs are editable
   const totalCtrls = lib.risks.reduce((a,r)=>a+(r.ctrls||[]).length,0);
   document.getElementById("libContent").innerHTML=`
     <div class="card" style="margin-bottom:12px">
@@ -2414,10 +2550,10 @@ function renderLibContent(){
         <div>
           <div style="display:flex;align-items:center;gap:8px">
             <div class="ctitle" style="margin-bottom:0">${activeLib}</div>
-            ${isCustom?`<span class="badge" style="background:#fef3c7;color:#92400e;font-size:10px">Personalizada</span>`:""}
+            ${customLibs[activeLib]?`<span class="badge" style="background:#fef3c7;color:#92400e;font-size:10px">Personalizada</span>`:""}
           </div>
           <div style="font-size:13px;color:var(--muted)">${lib.desc}</div>
-          ${isCustom&&lib.meta?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          ${customLibs[activeLib]&&lib.meta?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
             ${lib.meta.framework?`<span class="tag">Framework: ${lib.meta.framework}</span>`:""}
             ${lib.meta.version?`<span class="tag">v${lib.meta.version}</span>`:""}
             ${lib.meta.targetType?`<span class="tag">Alvo: ${lib.meta.targetType}</span>`:""}
@@ -2429,13 +2565,13 @@ function renderLibContent(){
           <span class="badge" style="background:${lib.color}18;color:${lib.color};font-size:12px;padding:4px 12px;display:block;margin-bottom:4px">${lib.risks.length} ameaças</span>
           <span style="font-size:11px;color:var(--muted)">${totalCtrls} controlo${totalCtrls!==1?"s":""}</span>
         </div>
-        ${isCustom?`<button class="btn btn-sm btn-danger" onclick="delCustomLib('${activeLib}')">Remover biblioteca</button>`:""}
+        ${customLibs[activeLib]?`<button class="btn btn-sm btn-danger" onclick="delCustomLib('${activeLib}')">Remover biblioteca</button>`:""}
       </div>
     </div>
     ${lib.risks.map((r,i)=>{
-      const ctrlChips=(r.ctrls||[]).map(cid=>{
-        const c=getCtrlForLib(activeLib,cid);
-        if(!c) return "";
+      const ctrlChips=(r.ctrls||[]).map(raw=>{
+        const c=typeof raw==='object'?raw:{id:raw,name:raw,type:"Preventivo",desc:"",ref:""};
+        const cid=c.id;
         if(isCustom){
           return`<span class="chip" style="display:inline-flex;align-items:center;gap:4px">`+
             `<strong>${c.id}</strong> \u2014 ${c.name}`+
@@ -2444,7 +2580,7 @@ function renderLibContent(){
           `</span>`;
         }
         return`<span class="chip"><strong>${c.id}</strong> \u2014 ${c.name}</span>`;
-      }).join("")||`<span style="font-size:12px;color:var(--muted)">Sem controlos</span>`;
+      }).join("")||`<span style="font-size:12px;color:var(--muted)">Sem controlos definidos</span>`;
       const addBtn=isCustom?`<button class="btn btn-sm btn-green" data-lib="${activeLib}" data-risk="${r.id}" onclick="libCtrlAddBtn(this)" style="font-size:11px;padding:2px 8px">+ Controlo</button>`:"";
       return`
     <div class="lib-risk-card">
@@ -2688,7 +2824,8 @@ function openPlanEdit(id){
   document.getElementById("pm-risk").value=p.riskKey||p.riskId||"";
 
   // detect if ctrl was free (not in globalCtrls list)
-  const isLib = globalCtrls.some(c=>c.id===p.ctrlId);
+  const allLibCtrlIds=new Set(Object.values({...LIBS,...customLibs}).flatMap(lib=>lib.risks.flatMap(r=>(r.ctrls||[]).map(c=>typeof c==='object'?c.id:c))));
+  const isLib = allLibCtrlIds.has(p.ctrlId)||globalCtrls.some(c=>c.id===p.ctrlId);
   if(!isLib){
     setCtrlMode('free');
     document.getElementById("pm-ctrl-free-id").value=p.ctrlId||"";
@@ -3106,6 +3243,7 @@ function simpleHash(str){
 // INIT
 // ════════════════════════════════════════════════════════════════════
 loadAppData();
+migrateCustomLibs();
 // Set default user to first active admin if none selected
 if(!currentUser){
   const firstAdmin=appUsers.find(u=>u.role==="admin"&&u.status==="active");
