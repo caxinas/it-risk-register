@@ -332,7 +332,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
       <button class="btn btn-primary" onclick="openCtrlAdd()">+ Novo controlo</button>
     </div>
     <div class="twrap">
-      <table><thead><tr><th>ID</th><th>Controlo</th><th>Tipo</th><th>Framework</th><th>Riscos associados</th><th></th></tr></thead>
+      <table><thead><tr><th>ID</th><th>Controlo</th><th>Tipo</th><th>Referência</th><th>Origem</th><th>Riscos associados</th><th></th></tr></thead>
       <tbody id="ctrlTable"></tbody></table>
     </div>
   </div>
@@ -1338,17 +1338,45 @@ function delRisk(id){if(confirm("Remover este risco?")){risks=risks.filter(r=>r.
 // CONTROLS
 // ════════════════════════════════════════════════════════════════════
 function renderControls(){
-  document.getElementById("ctrlTable").innerHTML=globalCtrls.map(c=>{
+  // Build consolidated list: global controls + controls from all custom libraries
+  const allCtrls=[];
+  const seen=new Set();
+
+  // Global controls
+  globalCtrls.forEach(c=>{
+    allCtrls.push({...c, _source:"Global"});
+    seen.add(c.id);
+  });
+
+  // Custom library controls (deduplicated by ID)
+  Object.entries(customLibs).forEach(([libName, lib])=>{
+    if(!lib.customCtrls) return;
+    Object.values(lib.customCtrls).forEach(c=>{
+      if(!seen.has(c.id)){
+        allCtrls.push({...c, fw:c.ref||c.fw||"", _source:libName});
+        seen.add(c.id);
+      }
+    });
+  });
+
+  document.getElementById("ctrlTable").innerHTML=allCtrls.map(c=>{
     const assoc=risks.filter(r=>r.controls&&r.controls.includes(c.id));
+    const isGlobal=c._source==="Global";
     return`<tr>
       <td class="rid">${c.id}</td>
-      <td style="font-weight:600">${c.name}</td>
+      <td style="font-weight:600">${c.name}${c.desc?`<div style="font-size:11px;color:var(--muted);font-weight:400;margin-top:2px">${c.desc}</div>`:""}</td>
       <td><span class="ct ${ctc(c.type)}">${c.type}</span></td>
       <td style="font-size:12px;color:var(--muted)">${c.fw||"—"}</td>
+      <td style="font-size:12px">
+        <span class="tag" style="font-size:10px">${c._source}</span>
+      </td>
       <td style="font-size:12px">${assoc.length?assoc.map(r=>`<span class="rid">${r.id}</span> `).join(""):"—"}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-sm" onclick="openCtrlEdit('${c.id}')">Editar</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteCtrl('${c.id}')">✕</button>
+        ${isGlobal
+          ?`<button class="btn btn-sm" onclick="openCtrlEdit('${c.id}')">Editar</button>
+             <button class="btn btn-sm btn-danger" onclick="deleteCtrl('${c.id}')">✕</button>`
+          :`<span style="font-size:11px;color:var(--muted)">Editar na biblioteca</span>`
+        }
       </td>
     </tr>`;
   }).join("");
@@ -2404,33 +2432,39 @@ function renderLibContent(){
         ${isCustom?`<button class="btn btn-sm btn-danger" onclick="delCustomLib('${activeLib}')">Remover biblioteca</button>`:""}
       </div>
     </div>
-    ${lib.risks.map((r,i)=>`
+    ${lib.risks.map((r,i)=>{
+      const ctrlChips=(r.ctrls||[]).map(cid=>{
+        const c=getCtrlForLib(activeLib,cid);
+        if(!c) return "";
+        if(isCustom){
+          return`<span class="chip" style="display:inline-flex;align-items:center;gap:4px">`+
+            `<strong>${c.id}</strong> \u2014 ${c.name}`+
+            ` <button data-lib="${activeLib}" data-risk="${r.id}" data-ctrl="${cid}" onclick="libCtrlEditBtn(this)" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);padding:0 2px" title="Editar">\u270f</button>`+
+            ` <button data-lib="${activeLib}" data-ctrl="${cid}" onclick="libCtrlDelBtn(this)" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--crit);padding:0 2px" title="Remover">\u2715</button>`+
+          `</span>`;
+        }
+        return`<span class="chip"><strong>${c.id}</strong> \u2014 ${c.name}</span>`;
+      }).join("")||`<span style="font-size:12px;color:var(--muted)">Sem controlos</span>`;
+      const addBtn=isCustom?`<button class="btn btn-sm btn-green" data-lib="${activeLib}" data-risk="${r.id}" onclick="libCtrlAddBtn(this)" style="font-size:11px;padding:2px 8px">+ Controlo</button>`:"";
+      return`
     <div class="lib-risk-card">
       <div class="lib-risk-hdr">
         <div>
-          <div class="lib-risk-id">${lib.id.toUpperCase()} · ${r.id}</div>
+          <div class="lib-risk-id">${lib.id.toUpperCase()} \u00b7 ${r.id}</div>
           <div class="lib-risk-name">${r.name}</div>
         </div>
         <span class="badge b-reduzido" style="white-space:nowrap">CIA: ${r.cia}</span>
       </div>
       <div class="lib-risk-desc">${r.desc||""}</div>
-      <div class="lib-ctrl-chips" style="align-items:center">
-        ${(r.ctrls||[]).map(cid=>{
-          const c=getCtrlForLib(activeLib,cid);
-          if(!c) return "";
-          if(isCustom){
-            return`<span class="chip" style="display:inline-flex;align-items:center;gap:4px">
-              <strong>${c.id}</strong> — ${c.name}
-              <button onclick="openLibCtrlEdit('${activeLib}','${r.id}','${cid}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);padding:0 2px" title="Editar">✏</button>
-              <button onclick="deleteLibCtrl('${activeLib}','${cid}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--crit);padding:0 2px" title="Remover">✕</button>
-            </span>`;
-          }
-          return`<span class="chip"><strong>${c.id}</strong> — ${c.name}</span>`;
-        }).join("")||`<span style="font-size:12px;color:var(--muted)">Sem controlos</span>`}
-        ${isCustom?`<button class="btn btn-sm btn-green" style="font-size:11px;padding:2px 8px" onclick="openLibCtrlAdd('${activeLib}','${r.id}')">+ Controlo</button>`:""}
-      </div>
-    </div>`).join("")}`;
+      <div class="lib-ctrl-chips" style="align-items:center">${ctrlChips}${addBtn}</div>
+    </div>`;
+    }).join("")}`;
 }
+
+// Delegated handlers to avoid quote nesting issues in template literals
+function libCtrlEditBtn(btn){openLibCtrlEdit(btn.dataset.lib,btn.dataset.risk,btn.dataset.ctrl);}
+function libCtrlDelBtn(btn){deleteLibCtrl(btn.dataset.lib,btn.dataset.ctrl);}
+function libCtrlAddBtn(btn){openLibCtrlAdd(btn.dataset.lib,btn.dataset.risk);}
 
 function delCustomLib(name){
   if(!confirm(`Remover a biblioteca "${name}"? Esta ação não pode ser desfeita.`))return;
