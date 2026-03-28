@@ -1,0 +1,12 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+*.swp
+*~
+
+# Backup exports (keep out of repo)
+it-risk-register-*.json
+analise-rascunho-*.json

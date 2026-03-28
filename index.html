@@ -1,0 +1,3212 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT Risk Register</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#f4f4f2;--surface:#fff;--border:#e0e0db;--text:#1a1a18;--muted:#6b6b68;
+  --accent:#1d3461;--accent-light:#e8edf5;--accent2:#2563eb;
+  --crit:#7f1d1d;--crit-bg:#fef2f2;--crit-bd:#fecaca;
+  --high:#92400e;--high-bg:#fffbeb;--high-bd:#fde68a;
+  --med:#166534;--med-bg:#f0fdf4;--med-bd:#bbf7d0;
+  --low:#1e40af;--low-bg:#eff6ff;--low-bd:#bfdbfe;
+  --r:8px;--rl:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+.app{display:flex;flex-direction:column;min-height:100vh;}
+header{background:var(--accent);color:#fff;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
+header h1{font-size:16px;font-weight:700;}
+header span{font-size:12px;opacity:.6;}
+nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;}
+nav button{padding:11px 16px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent;font-family:inherit;transition:all .15s;}
+nav button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+nav button:hover:not(.active){color:var(--text);background:var(--bg);}
+main{flex:1;padding:20px;max-width:1400px;margin:0 auto;width:100%;}
+.section{display:none;}.section.active{display:block;}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:16px;}
+.card0{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;}
+.ctitle{font-size:14px;font-weight:700;margin-bottom:14px;}
+
+/* Metrics */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px;}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center;}
+.mlabel{font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+.mvalue{font-size:26px;font-weight:700;}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:600px){.charts{grid-template-columns:1fr;}}
+.cwrap{position:relative;width:100%;height:230px;}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:12px;color:var(--muted);}
+.legend span{display:flex;align-items:center;gap:5px;}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+
+/* Table */
+.twrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;font-size:11px;font-weight:700;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
+td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg);}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;}
+.b-critico{background:var(--crit-bg);color:var(--crit);}
+.b-alto{background:var(--high-bg);color:var(--high);}
+.b-medio{background:var(--med-bg);color:var(--med);}
+.b-reduzido,.b-baixo{background:var(--low-bg);color:var(--low);}
+.b-muitoalto{background:#3b0764;color:#e9d5ff;}
+.b-aberto{background:#fff7ed;color:#9a3412;}
+.b-mitigado{background:var(--med-bg);color:var(--med);}
+.b-aceite{background:var(--low-bg);color:var(--low);}
+.b-transferido{background:#f5f3ff;color:#5b21b6;}
+.b-lib{background:#e0f2fe;color:#075985;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600;}
+
+/* Score */
+.score{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--r);font-weight:700;font-size:13px;}
+.s-critical{background:var(--crit-bg);color:var(--crit);}
+.s-high{background:var(--high-bg);color:var(--high);}
+.s-medium{background:var(--med-bg);color:var(--med);}
+.s-low{background:var(--low-bg);color:var(--low);}
+
+/* Toolbar */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.toolbar input,.toolbar select{border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit;}
+.toolbar input{width:185px;}
+.toolbar select{width:145px;}
+.spacer{flex:1;}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:var(--r);font-size:13px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;transition:all .15s;white-space:nowrap;}
+.btn:hover{background:var(--bg);}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{opacity:.88;}
+.btn-sm{padding:4px 10px;font-size:12px;}
+.btn-danger{color:var(--crit);border-color:var(--crit-bd);}
+.btn-danger:hover{background:var(--crit-bg);}
+.btn-accent{background:var(--accent-light);color:var(--accent);border-color:var(--accent);font-weight:600;}
+.btn-accent:hover{background:#d0daea;}
+.btn-green{background:#f0fdf4;color:#166534;border-color:#bbf7d0;font-weight:600;}
+.btn-green:hover{background:#dcfce7;}
+
+/* Forms */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+@media(max-width:500px){.fgrid,.fgrid3{grid-template-columns:1fr;}}
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fg.full{grid-column:1/-1;}
+.fg label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+.fg input,.fg select,.fg textarea{border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface);}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:2px solid var(--accent);border-color:transparent;}
+.slabel{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;display:block;}
+
+/* Overlays & Modals */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--rl);width:min(800px,100%);padding:24px;margin:auto;}
+.mhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.mtitle{font-size:16px;font-weight:700;}
+.mfooter{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+
+/* CIA options */
+.cia-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(max-width:480px){.cia-grid{grid-template-columns:1fr;}}
+.copt{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .15s;}
+.copt:hover{border-color:var(--accent);background:var(--accent-light);}
+.copt.selected{border-color:var(--accent);background:var(--accent-light);}
+.copt input{accent-color:var(--accent);margin-top:3px;flex-shrink:0;}
+.copt-lbl{font-weight:600;font-size:13px;}
+.copt-desc{font-size:11px;color:var(--muted);margin-top:1px;}
+
+/* CIA bars */
+.cia-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;}
+.cia-lbl{width:115px;color:var(--muted);font-weight:600;flex-shrink:0;}
+.cia-bw{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border);}
+.cia-b{height:100%;border-radius:4px;}
+.cia-v{width:72px;}
+
+/* Wizard */
+.wsteps{display:flex;margin-bottom:22px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);}
+.wstep{flex:1;padding:9px 4px;text-align:center;font-size:11px;font-weight:600;background:var(--bg);color:var(--muted);border-right:1px solid var(--border);}
+.wstep:last-child{border-right:none;}
+.wstep.active{background:var(--accent);color:#fff;}
+.wstep.done{background:var(--med-bg);color:var(--med);}
+.wpanel{display:none;}.wpanel.active{display:block;}
+.wq{font-size:15px;font-weight:700;margin-bottom:4px;}
+.wsub{font-size:13px;color:var(--muted);margin-bottom:14px;}
+.wopts{display:flex;flex-direction:column;gap:8px;}
+.wopt{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .15s;}
+.wopt:hover{border-color:var(--accent);background:var(--accent-light);}
+.wopt.sel{border-color:var(--accent);background:var(--accent-light);}
+.wopt input{accent-color:var(--accent);margin-top:3px;flex-shrink:0;}
+.wol{font-weight:600;font-size:13px;}
+.wod{font-size:12px;color:var(--muted);margin-top:2px;}
+.wnav{display:flex;justify-content:space-between;margin-top:18px;}
+.wprogress{font-size:12px;color:var(--muted);margin-bottom:8px;}
+
+/* Inherent risk table in wizard */
+.ir-card{border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:0;}
+.ir-hdr{background:var(--accent);color:#fff;padding:14px 18px;}
+.ir-hdr h3{font-size:15px;font-weight:700;}
+.ir-hdr p{font-size:12px;opacity:.75;margin-top:3px;}
+.ir-body{padding:18px;}
+.ir-risk-title{font-size:14px;font-weight:700;margin-bottom:4px;}
+.ir-risk-desc{font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5;}
+.ir-risk-ref{font-size:11px;color:var(--low);font-weight:600;margin-bottom:14px;}
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.slider-lbl{width:110px;font-size:12px;font-weight:700;color:var(--muted);flex-shrink:0;}
+.slider-wrap{flex:1;}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
+.slider-val{width:80px;text-align:right;font-size:13px;font-weight:700;}
+.ir-score-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:16px;margin-top:4px;}
+.ir-score-num{font-size:28px;font-weight:700;}
+.ir-score-info{font-size:12px;color:var(--muted);}
+.controls-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;}
+.ctrl-item{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;}
+.ctrl-item:hover{background:var(--bg);}
+.ctrl-item input{width:16px;height:16px;cursor:pointer;accent-color:var(--accent);flex-shrink:0;margin-top:2px;}
+.ct{padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;}
+.ct-prev{background:#f5f3ff;color:#5b21b6;}
+.ct-det{background:var(--med-bg);color:var(--med);}
+.ct-resp{background:var(--high-bg);color:var(--high);}
+
+/* Summary rows */
+.srow{padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:12px;}
+.srow:last-child{border-bottom:none;}
+.sk{width:160px;font-size:12px;font-weight:700;color:var(--muted);flex-shrink:0;}
+.sv{font-size:13px;}
+
+/* Risk summary table in wizard */
+.rs-table{width:100%;border-collapse:collapse;font-size:12px;}
+.rs-table th{font-size:11px;font-weight:700;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.04em;}
+.rs-table td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.rs-table tr:last-child td{border-bottom:none;}
+
+/* System cards */
+.sys-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.sys-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px;display:flex;flex-direction:column;gap:10px;transition:box-shadow .15s;}
+.sys-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.07);}
+.sys-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.sys-name{font-weight:700;font-size:14px;}
+.sys-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.sys-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.sys-footer{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--border);}
+
+/* Library view */
+.lib-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.lib-tab{padding:6px 14px;border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--muted);transition:all .15s;}
+.lib-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.lib-tab:hover:not(.active){background:var(--bg);}
+.lib-risk-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;}
+.lib-risk-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;}
+.lib-risk-id{font-family:monospace;font-size:11px;color:var(--muted);}
+.lib-risk-name{font-weight:700;font-size:13px;margin-bottom:4px;}
+.lib-risk-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.lib-ctrl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.chip{display:inline-block;padding:2px 8px;background:var(--bg);border:1px solid var(--border);border-radius:12px;font-size:11px;color:var(--muted);}
+
+/* Matrix */
+.mx-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:640px){.mx-layout{grid-template-columns:1fr;}}
+.mcell{height:44px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;border:2px solid transparent;transition:opacity .15s;}
+.mcell:hover{opacity:.75;}.mcell.sel{border-color:var(--accent);}
+.mlbl{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);}
+.m-low{background:var(--med-bg);color:var(--med);}
+.m-med{background:var(--high-bg);color:var(--high);}
+.m-high{background:var(--crit-bg);color:var(--crit);}
+.m-crit{background:#7f1d1d;color:#fff;}
+.detail-risk{padding:10px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;}
+
+.rid{font-family:monospace;font-size:11px;color:var(--muted);}
+.empty{text-align:center;padding:32px;color:var(--muted);}
+.tag{display:inline-block;padding:1px 7px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--muted);margin:1px;}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div><h1>IT Risk Register</h1><span>Gestão de Risco de Segurança de Informação</span></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <div id="headerUser" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 10px;border-radius:var(--r);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2)" onclick="openUserSwitch()" title="Trocar utilizador">
+      <span id="headerUserAvatar" style="width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">?</span>
+      <div>
+        <div id="headerUserName" style="font-size:12px;font-weight:600;color:#fff;line-height:1.2">Sem sessão</div>
+        <div id="headerUserRole" style="font-size:10px;color:rgba(255,255,255,.65);line-height:1.2"></div>
+      </div>
+    </div>
+    <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportAppData()">⬇ Exportar</button>
+    <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="openJsonModal('Importar dados — cola o JSON abaixo',null,doImportAppData)">⬆ Importar</button>
+  </div>
+</header>
+<nav id="mainNav">
+  <button class="active" data-tab="dashboard" onclick="gotoTab('dashboard',this)">Dashboard</button>
+  <button data-tab="systems" onclick="gotoTab('systems',this)">Sistemas</button>
+  <button data-tab="analyses" onclick="gotoTab('analyses',this)">Análises de Risco</button>
+  <button data-tab="register" onclick="gotoTab('register',this)">Registo de Riscos</button>
+  <button data-tab="libraries" onclick="gotoTab('libraries',this)">Bibliotecas</button>
+  <button data-tab="controls" onclick="gotoTab('controls',this)">Controlos</button>
+  <button data-tab="matrix" onclick="gotoTab('matrix',this)">Matriz</button>
+  <button data-tab="plans" onclick="gotoTab('plans',this)">Planos de Mitigação</button>
+  <button data-tab="users" onclick="gotoTab('users',this)">Utilizadores</button>
+  <button data-tab="help" onclick="gotoTab('help',this)">Ajuda</button>
+</nav>
+<main>
+
+<!-- DASHBOARD -->
+<div id="section-dashboard" class="section active">
+  <div class="metrics" id="metrics"></div>
+  <div class="charts">
+    <div class="card"><div class="ctitle">Riscos por nível</div><div class="cwrap"><canvas id="cLevel"></canvas></div>
+      <div class="legend"><span><i style="background:#7f1d1d"></i>Crítico</span><span><i style="background:#d97706"></i>Alto</span><span><i style="background:#16a34a"></i>Médio</span><span><i style="background:#2563eb"></i>Baixo</span></div>
+    </div>
+    <div class="card"><div class="ctitle">Riscos por sistema</div><div class="cwrap"><canvas id="cSystem"></canvas></div></div>
+  </div>
+  <div class="card"><div class="ctitle">Top 5 riscos inerentes mais graves</div>
+    <div class="twrap"><table><thead><tr><th>ID</th><th>Risco</th><th>Sistema</th><th>Biblioteca</th><th>Score inerente</th><th>Nível</th><th>Estado</th></tr></thead><tbody id="topTable"></tbody></table></div>
+  </div>
+</div>
+
+<!-- SYSTEMS -->
+<div id="section-systems" class="section">
+  <div class="toolbar">
+    <input type="text" id="sysSearch" placeholder="Pesquisar sistemas..." oninput="renderSystems()">
+    <select id="sysFilter" onchange="renderSystems()">
+      <option value="">Todos os tipos</option>
+      <option>Aplicação Web</option><option>API / Serviço</option><option>Aplicação Mobile</option>
+      <option>Infraestrutura</option><option>SaaS</option><option>Base de Dados</option><option>Rede</option><option>Outro</option>
+    </select>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="openSysAdd()">+ Novo sistema</button>
+  </div>
+  <div class="sys-grid" id="sysGrid"></div>
+  <div id="sysEmpty" class="empty" style="display:none">Sem sistemas registados.</div>
+</div>
+
+<!-- ANALYSES -->
+<div id="section-analyses" class="section">
+  <div class="card"><div class="ctitle">Análises de risco realizadas</div>
+    <div class="twrap"><table><thead><tr><th>ID</th><th>Sistema</th><th>Biblioteca</th><th>Data</th><th>Riscos avaliados</th><th>Score médio</th><th>Nível máx.</th><th></th></tr></thead><tbody id="analysesTable"></tbody></table></div>
+    <div id="analysesEmpty" class="empty" style="display:none">Nenhuma análise realizada ainda. Inicia uma análise a partir da ficha de um sistema.</div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="section-register" class="section">
+  <div class="toolbar">
+    <input type="text" id="rSearch" placeholder="Pesquisar riscos..." oninput="renderTable()">
+    <select id="rLevel" onchange="renderTable()"><option value="">Todos os níveis</option><option>Crítico</option><option>Alto</option><option>Médio</option><option>Baixo</option></select>
+    <select id="rSystem" onchange="renderTable()"><option value="">Todos os sistemas</option></select>
+    <select id="rStatus" onchange="renderTable()"><option value="">Todos os estados</option><option>Aberto</option><option>Mitigado</option><option>Aceite</option><option>Transferido</option></select>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="openRiskAdd(null)">+ Adicionar risco</button>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="twrap">
+      <table><thead><tr><th>ID</th><th>Risco</th><th>Sistema</th><th>Biblioteca</th><th>P</th><th>I</th><th>Score inerente</th><th>Nível</th><th>Tratamento</th><th>Estado</th><th></th></tr></thead>
+      <tbody id="riskTable"></tbody></table>
+      <div id="emptyReg" class="empty" style="display:none">Sem riscos. Inicia uma análise a partir de um sistema ou adiciona manualmente.</div>
+    </div>
+  </div>
+</div>
+
+<!-- LIBRARIES -->
+<div id="section-libraries" class="section">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <div class="lib-tabs" id="libTabs" style="margin-bottom:0"></div>
+    <button class="btn btn-primary" onclick="openLibWiz()">+ Nova biblioteca</button>
+  </div>
+  <div id="libContent"></div>
+</div>
+
+<!-- CONTROLS -->
+<div id="section-controls" class="section">
+  <div class="card"><div class="ctitle">Biblioteca de controlos de segurança</div>
+    <div class="twrap"><table><thead><tr><th>ID</th><th>Controlo</th><th>Tipo</th><th>Framework</th><th>Riscos associados</th></tr></thead><tbody id="ctrlTable"></tbody></table></div>
+  </div>
+</div>
+
+<!-- MATRIX -->
+<div id="section-matrix" class="section">
+  <div class="mx-layout">
+    <div class="card">
+      <div class="ctitle">Matriz de risco inerente</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Clica numa célula para ver os riscos</p>
+      <div style="display:flex;gap:6px;align-items:flex-end">
+        <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:28px">
+          <div class="mlbl" style="height:44px">5</div><div class="mlbl" style="height:44px">4</div>
+          <div class="mlbl" style="height:44px">3</div><div class="mlbl" style="height:44px">2</div>
+          <div class="mlbl" style="height:44px">1</div>
+          <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--muted);margin-top:4px">Impacto</div>
+        </div>
+        <div style="flex:1">
+          <div id="mxGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;"></div>
+          <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="flex:1">1</div><div class="mlbl" style="flex:1">2</div><div class="mlbl" style="flex:1">3</div><div class="mlbl" style="flex:1">4</div><div class="mlbl" style="flex:1">5</div></div>
+          <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px">Probabilidade</div>
+        </div>
+      </div>
+      <div class="legend" style="margin-top:12px">
+        <span><i style="background:var(--med-bg);border:1px solid #86efac"></i>Baixo 1–3</span>
+        <span><i style="background:var(--high-bg);border:1px solid #fcd34d"></i>Médio 4–9</span>
+        <span><i style="background:var(--crit-bg);border:1px solid #fca5a5"></i>Alto 10–16</span>
+        <span><i style="background:#7f1d1d"></i>Crítico 17–25</span>
+      </div>
+    </div>
+    <div class="card"><div class="ctitle" id="mxDetailTitle">Seleciona uma célula</div><div id="mxDetail"><p style="color:var(--muted);font-size:13px">Clica numa célula para ver os riscos.</p></div></div>
+  </div>
+</div>
+<!-- PLANS -->
+<div id="section-plans" class="section">
+  <div class="toolbar">
+    <input type="text" id="planSearch" placeholder="Pesquisar planos..." oninput="renderPlans()">
+    <select id="planStatus" onchange="renderPlans()">
+      <option value="">Todos os estados</option>
+      <option>Aberto</option><option>Em progresso</option><option>Concluído</option><option>Cancelado</option>
+    </select>
+    <select id="planSystem" onchange="renderPlans()"><option value="">Todos os sistemas</option></select>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="openPlanAdd(null,null)">+ Novo plano</button>
+  </div>
+  <div id="planStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+  <div class="card" style="padding:0">
+    <div class="twrap">
+      <table><thead><tr>
+        <th>ID</th><th>Risco</th><th>Controlo</th><th>Sistema</th><th>Responsável</th>
+        <th>Data limite</th><th>Estado</th><th>Última atualização</th><th></th>
+      </tr></thead><tbody id="planTable"></tbody></table>
+      <div id="planEmpty" class="empty" style="display:none">Sem planos de mitigação. Cria um plano a partir da análise de risco ou manualmente.</div>
+    </div>
+  </div>
+</div>
+
+<!-- USERS -->
+<div id="section-users" class="section">
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <div>
+        <div class="ctitle" style="margin-bottom:2px">Gestão de utilizadores</div>
+        <p style="font-size:13px;color:var(--muted)">Cria e gere os utilizadores locais e os seus perfis de acesso.</p>
+      </div>
+      <button class="btn btn-primary" onclick="openUserAdd()">+ Novo utilizador</button>
+    </div>
+
+    <!-- Auth toggle -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-weight:600;font-size:13px;margin-bottom:3px">Autenticação com password</div>
+          <div style="font-size:12px;color:var(--muted)">Quando ativada, o utilizador terá de introduzir a password para aceder. Atualmente em modo de seleção simples (sem password).</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <div style="position:relative;width:44px;height:24px" onclick="toggleAuthMode()">
+            <input type="checkbox" id="authModeChk" style="opacity:0;width:0;height:0;position:absolute">
+            <div id="authModeTrack" style="position:absolute;inset:0;background:var(--border);border-radius:12px;transition:background .2s"></div>
+            <div id="authModeThumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+          </div>
+          <span id="authModeLabel" style="color:var(--muted)">Desativada</span>
+        </label>
+      </div>
+      <div id="authModeNote" style="display:none;margin-top:10px;padding:8px 12px;background:var(--high-bg);border:1px solid var(--high-bd);border-radius:var(--r);font-size:12px;color:var(--high)">
+        ⚠ A autenticação com password está <strong>ativa</strong>. Os utilizadores terão de introduzir a password para selecionar o seu perfil.
+      </div>
+    </div>
+
+    <!-- User table -->
+    <div class="twrap">
+      <table><thead><tr>
+        <th>Nome</th><th>Username</th><th>Perfil</th><th>Estado</th><th>Criado em</th><th>Último acesso</th><th></th>
+      </tr></thead><tbody id="usersTable"></tbody></table>
+      <div id="usersEmpty" class="empty" style="display:none">Nenhum utilizador criado. Cria o primeiro utilizador.</div>
+    </div>
+  </div>
+
+  <!-- Permissions reference -->
+  <div class="card">
+    <div class="ctitle">Permissões por perfil</div>
+    <div class="twrap">
+      <table style="font-size:13px">
+        <thead><tr style="background:var(--bg)">
+          <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Funcionalidade</th>
+          <th style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)">Administrador</th>
+          <th style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)">Gestor de Risco</th>
+          <th style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)">Apenas Leitura</th>
+        </tr></thead>
+        <tbody id="permTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- HELP -->
+<div id="section-help" class="section">
+
+<div class="card">
+  <div class="ctitle">Guia de utilização e racional metodológico</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:0">Esta aplicação implementa um processo estruturado de gestão de risco de segurança da informação, baseado nas metodologias ISO/IEC 27005, NIST SP 800-30 e FAIR. A documentação abaixo descreve as fórmulas, critérios e decisões de design utilizados.</p>
+</div>
+
+<!-- CLASSIFICAÇÃO CIA -->
+<div class="card">
+  <div class="ctitle">1. Classificação CIA dos sistemas</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Cada sistema é classificado em três vetores independentes, com quatro níveis de impacto cada.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px">
+    <thead><tr style="background:var(--bg)"><th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Vetor</th><th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Pergunta de referência</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600">Confidencialidade (C)</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Qual o impacto se a informação for divulgada sem autorização?</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600">Integridade (I)</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Qual o impacto se a informação for alterada ou corrompida?</td></tr>
+      <tr><td style="padding:8px 10px;font-weight:600">Disponibilidade (A)</td><td style="padding:8px 10px;color:var(--muted)">Qual o impacto se o sistema ficar indisponível?</td></tr>
+    </tbody>
+  </table>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="background:var(--bg)"><th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Nível</th><th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Critério</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-reduzido">Reduzido</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Impacto mínimo, sem consequências operacionais relevantes</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-medio">Médio</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Impacto moderado na operação, reputação ou clientes</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-alto">Alto</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Impacto financeiro, legal ou de conformidade significativo</td></tr>
+      <tr><td style="padding:8px 10px"><span class="badge b-muitoalto">Muito Alto</span></td><td style="padding:8px 10px;color:var(--muted)">Impacto severo e potencialmente irreversível na organização</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:var(--muted);margin-top:10px">A <strong>criticidade global</strong> do sistema é derivada automaticamente da média percentual dos três vetores: Reduzido=25%, Médio=50%, Alto=75%, Muito Alto=100%. Média ≥ 88% → Muito Alto; ≥ 63% → Alto; ≥ 38% → Médio; &lt; 38% → Reduzido.</p>
+</div>
+
+<!-- RISCO INERENTE -->
+<div class="card">
+  <div class="ctitle">2. Cálculo do risco inerente</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">O risco inerente representa o risco <strong>antes</strong> da aplicação de qualquer controlo de segurança. É calculado multiplicando a probabilidade de ocorrência pelo impacto potencial.</p>
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px;font-family:monospace;font-size:14px;text-align:center">
+    Score Inerente = Probabilidade × Impacto
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px">
+    <thead><tr style="background:var(--bg)">
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Escala</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Probabilidade</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Impacto</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600">1</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Muito improvável — sem precedente, controlos fortes</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Desprezível — facilmente recuperável</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600">2</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Improvável — baixa exposição</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Menor — impacto limitado</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600">3</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Possível — exposição moderada</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Moderado — impacto operacional significativo</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600">4</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Provável — histórico ou contexto favorável</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Grave — impacto financeiro ou legal relevante</td></tr>
+      <tr><td style="padding:8px 10px;font-weight:600">5</td><td style="padding:8px 10px;color:var(--muted)">Muito provável — sem controlos efetivos</td><td style="padding:8px 10px;color:var(--muted)">Catastrófico — impacto severo e irreversível</td></tr>
+    </tbody>
+  </table>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="background:var(--bg)">
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Nível de risco</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Score (P × I)</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Ação recomendada</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-reduzido">Baixo</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:monospace">1 – 3</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Aceitar ou monitorizar</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-medio">Médio</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:monospace">4 – 9</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Mitigar com controlos adequados</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-alto">Alto</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:monospace">10 – 16</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Mitigar urgentemente, plano de tratamento obrigatório</td></tr>
+      <tr><td style="padding:8px 10px"><span class="badge b-critico">Crítico</span></td><td style="padding:8px 10px;font-family:monospace">17 – 25</td><td style="padding:8px 10px;color:var(--muted)">Ação imediata — escalada para gestão de topo</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- AVALIAÇÃO DE CONTROLOS -->
+<div class="card">
+  <div class="ctitle">3. Avaliação da eficácia dos controlos</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Cada controlo associado a um risco é avaliado numa escala de 0 a 3, refletindo o grau de implementação e efetividade real observada na organização.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="background:var(--bg)">
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Classificação</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Significado</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Redução da probabilidade</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;color:var(--crit)">0 — Nada efetivo</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Controlo inexistente, desativado ou completamente ineficaz</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:monospace;font-weight:600">0%</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;color:var(--high)">1 — Pouco efetivo</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Implementado parcialmente, com lacunas significativas</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:monospace;font-weight:600">20%</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;color:#ca8a04">2 — Parcialmente efetivo</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Implementado na maioria dos casos, eficaz mas com exceções</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:monospace;font-weight:600">50%</td></tr>
+      <tr><td style="padding:8px 10px;font-weight:600;color:var(--med)">3 — Totalmente efetivo</td><td style="padding:8px 10px;color:var(--muted)">Implementado e operacional em todos os contextos relevantes</td><td style="padding:8px 10px;font-family:monospace;font-weight:600">75%</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:var(--muted);margin-top:10px">A redução máxima é de 75% (não 100%) porque nenhum controlo elimina completamente o risco — existe sempre um risco residual mínimo, representado pelo valor mínimo de probabilidade = 1.</p>
+</div>
+
+<!-- RISCO RESIDUAL -->
+<div class="card">
+  <div class="ctitle">4. Cálculo do risco residual</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">O risco residual representa o risco que permanece <strong>após</strong> a aplicação dos controlos. A fórmula atual afeta exclusivamente a componente de probabilidade — o impacto mantém-se igual ao inerente, pois reflete a consequência intrínseca do evento independentemente dos controlos.</p>
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px;font-size:13px">
+    <div style="font-family:monospace;font-size:14px;margin-bottom:10px">
+      Eficácia média = média(eficácia de cada controlo avaliado)<br>
+      Redução = EFF_REDUCTION[round(Eficácia média)]<br>
+      Probabilidade residual = max(1, round(Probabilidade inerente × (1 − Redução)))<br>
+      <strong>Score Residual = Probabilidade residual × Impacto inerente</strong>
+    </div>
+    <div style="font-size:12px;color:var(--muted)">Nota: apenas controlos com eficácia avaliada (≥ 0) entram no cálculo. Controlos "Não avaliados" são excluídos da média.</div>
+  </div>
+  <div style="background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--r);padding:14px;font-size:13px">
+    <strong>Exemplo:</strong> Risco com P=4, I=5 (Score inerente = 20, Crítico). Dois controlos avaliados: um com eficácia 3 e outro com eficácia 2. Eficácia média = 2.5 → round(2.5) = 3 → Redução = 75%. Probabilidade residual = max(1, round(4 × 0.25)) = 1. Score residual = 1 × 5 = 5 (Baixo). → Risco <strong>auto-mitigado</strong>.
+  </div>
+</div>
+
+<!-- AUTO-MITIGAÇÃO -->
+<div class="card">
+  <div class="ctitle">5. Critério de auto-mitigação</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Um risco é automaticamente marcado como <strong>Mitigado</strong> quando satisfaz simultaneamente dois critérios:</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+    <div style="background:var(--med-bg);border:1px solid var(--med-bd);border-radius:var(--r);padding:14px">
+      <div style="font-weight:700;color:var(--med);margin-bottom:6px">Critério 1 — Score residual</div>
+      <div style="font-family:monospace;font-size:16px;font-weight:700;color:var(--med);margin-bottom:6px">Score residual ≤ 3</div>
+      <div style="font-size:12px;color:var(--muted)">O risco calculado após controlos corresponde ao nível Baixo (1–3), considerado aceitável sem ação adicional.</div>
+    </div>
+    <div style="background:var(--med-bg);border:1px solid var(--med-bd);border-radius:var(--r);padding:14px">
+      <div style="font-weight:700;color:var(--med);margin-bottom:6px">Critério 2 — Eficácia dos controlos</div>
+      <div style="font-family:monospace;font-size:16px;font-weight:700;color:var(--med);margin-bottom:6px">Eficácia média ≥ 2.5</div>
+      <div style="font-size:12px;color:var(--muted)">Os controlos implementados são pelo menos "Parcialmente efetivos" em média — garante que o score baixo não resulta apenas de falta de avaliação.</div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:var(--muted)">O critério duplo evita falsos positivos: um risco com score residual baixo mas controlos sem avaliação (ou avaliados como "Nada efetivos") não é auto-mitigado — fica como Aberto para revisão manual.</p>
+</div>
+
+<!-- BIBLIOTECAS -->
+<div class="card">
+  <div class="ctitle">6. Bibliotecas de riscos disponíveis</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">A aplicação inclui cinco bibliotecas pré-definidas baseadas em frameworks de referência, e permite a criação de bibliotecas personalizadas.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="background:var(--bg)">
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Biblioteca</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Âmbito</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Ameaças</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Sistema alvo típico</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600">OWASP Top 10 Web</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Segurança de aplicações web</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">10</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Portais, e-commerce, intranets web</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600">OWASP API Top 10</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Segurança de APIs REST/GraphQL</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">10</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">APIs de pagamento, integrações, microserviços</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600">CIS Top 18</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Controlos críticos de infraestrutura</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">10</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Infraestrutura de rede, endpoints, servidores</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600">ISO 27001 Annex A</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Gestão de segurança da informação</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">10</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Qualquer sistema — âmbito genérico</td></tr>
+      <tr><td style="padding:8px 10px;font-weight:600">NIST SP 800-53</td><td style="padding:8px 10px;color:var(--muted)">Sistemas federais e cloud crítica</td><td style="padding:8px 10px;text-align:center">10</td><td style="padding:8px 10px;color:var(--muted)">Cloud, sistemas críticos, organismos públicos</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- FLUXO DA ANÁLISE -->
+<div class="card">
+  <div class="ctitle">7. Fluxo do wizard de análise de risco</div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <div style="background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">1</div>
+      <div><div style="font-weight:600;font-size:13px">CIA</div><div style="font-size:12px;color:var(--muted)">Define ou confirma a classificação de Confidencialidade, Integridade e Disponibilidade para esta análise. Pré-preenchido com o CIA da ficha do sistema, mas ajustável por análise.</div></div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <div style="background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">2</div>
+      <div><div style="font-weight:600;font-size:13px">Bibliotecas</div><div style="font-size:12px;color:var(--muted)">Seleciona uma ou mais bibliotecas de riscos. Os riscos de todas as bibliotecas selecionadas são combinados numa lista única.</div></div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <div style="background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">3</div>
+      <div><div style="font-weight:600;font-size:13px">Riscos</div><div style="font-size:12px;color:var(--muted)">Exclui os riscos não aplicáveis a este sistema. Os riscos excluídos não entram na avaliação.</div></div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <div style="background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">4</div>
+      <div><div style="font-weight:600;font-size:13px">Avaliação inerente</div><div style="font-size:12px;color:var(--muted)">Para cada risco, define a Probabilidade (1–5) e o Impacto (1–5) <em>sem considerar controlos</em>. Seleciona os controlos aplicáveis.</div></div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <div style="background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">5</div>
+      <div><div style="font-weight:600;font-size:13px">Matriz inerente</div><div style="font-size:12px;color:var(--muted)">Visualização dos riscos posicionados na matriz P×I. Permite identificar concentrações de risco antes da aplicação de controlos.</div></div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <div style="background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">6</div>
+      <div><div style="font-weight:600;font-size:13px">Controlos</div><div style="font-size:12px;color:var(--muted)">Para cada risco, avalia a eficácia de cada controlo (0–3) e regista feedback sobre o estado real de implementação.</div></div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <div style="background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">7</div>
+      <div><div style="font-weight:600;font-size:13px">Resumo residual</div><div style="font-size:12px;color:var(--muted)">Tabela comparativa entre risco inerente e residual. Riscos que satisfazem os critérios de auto-mitigação são assinalados.</div></div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <div style="background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">8</div>
+      <div><div style="font-weight:600;font-size:13px">Matriz residual e planos</div><div style="font-size:12px;color:var(--muted)">Visualização dos riscos após controlos. Possibilidade de criar planos de mitigação para riscos residuais ainda relevantes.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- DADOS E PERSISTÊNCIA -->
+<div class="card">
+  <div class="ctitle">8. Dados e persistência</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Esta aplicação é um ficheiro HTML standalone sem servidor. Os dados são mantidos de duas formas:</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px">
+      <div style="font-weight:700;margin-bottom:6px;font-size:13px">localStorage (quando disponível)</div>
+      <div style="font-size:12px;color:var(--muted)">Os dados são guardados automaticamente no browser após cada operação. Persistem entre sessões no mesmo browser. Pode não funcionar em todos os contextos (ex: ficheiro local em Safari).</div>
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px">
+      <div style="font-weight:700;margin-bottom:6px;font-size:13px">Exportar / Importar JSON</div>
+      <div style="font-size:12px;color:var(--muted)">Usa os botões "⬇ Exportar" e "⬆ Importar" no cabeçalho para guardar e restaurar todos os dados. Funciona sempre, independentemente do browser ou contexto.</div>
+    </div>
+  </div>
+  <div style="background:var(--high-bg);border:1px solid var(--high-bd);border-radius:var(--r);padding:12px;font-size:12px;color:var(--high)">
+    <strong>Recomendação:</strong> exporta os dados regularmente com "⬇ Exportar" e guarda o ficheiro JSON numa localização segura. Para uso em equipa ou com persistência garantida, serve o ficheiro via servidor local (<code>python -m http.server</code>) ou aloja-o numa plataforma web.
+  </div>
+</div>
+
+</div>
+
+</main>
+</div>
+
+<!-- ═══ MODAL: SISTEMA ═══════════════════════════════════════════════ -->
+<div class="overlay" id="sysModal">
+<div class="modal">
+  <div class="mhdr"><div class="mtitle" id="sysMTitle">Novo sistema</div><button class="btn btn-sm" onclick="closeSysModal()">Fechar ✕</button></div>
+  <div class="fgrid">
+    <div class="fg full"><label>Nome *</label><input id="sf-name" type="text" placeholder="Ex: Portal de Clientes, API de Pagamentos"></div>
+    <div class="fg full"><label>Descrição</label><textarea id="sf-desc" rows="2" placeholder="Função do sistema..."></textarea></div>
+    <div class="fg"><label>Tipo</label>
+      <select id="sf-type"><option>Aplicação Web</option><option>API / Serviço</option><option>Aplicação Mobile</option><option>Infraestrutura</option><option>SaaS</option><option>Base de Dados</option><option>Rede</option><option>Outro</option></select>
+    </div>
+    <div class="fg"><label>Proprietário</label><input id="sf-owner" type="text" placeholder="Ex: CISO, IT Manager"></div>
+    <div class="fg"><label>Dados processados</label>
+      <select id="sf-data" multiple size="4">
+        <option value="Pessoais">Dados pessoais (RGPD)</option><option value="Financeiros">Dados financeiros</option>
+        <option value="Confidenciais">Dados confidenciais</option><option value="Saúde">Dados de saúde</option>
+        <option value="Públicos">Dados públicos</option><option value="Operacionais">Dados operacionais</option>
+      </select><span style="font-size:11px;color:var(--muted)">Ctrl+clique para múltiplos</span>
+    </div>
+    <div class="fg"><label>Ambiente</label>
+      <select id="sf-env"><option>Produção</option><option>Desenvolvimento</option><option>Teste</option><option>DR</option></select>
+    </div>
+  </div>
+  <span class="slabel" style="margin-top:18px">CIA — Confidencialidade</span>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Impacto da divulgação não autorizada</p>
+  <div class="cia-grid" id="sfC"></div>
+  <span class="slabel" style="margin-top:14px">CIA — Integridade</span>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Impacto da alteração ou corrupção de dados</p>
+  <div class="cia-grid" id="sfI"></div>
+  <span class="slabel" style="margin-top:14px">CIA — Disponibilidade</span>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Impacto da indisponibilidade do sistema</p>
+  <div class="cia-grid" id="sfA"></div>
+  <div class="mfooter">
+    <button class="btn" onclick="closeSysModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveSys()">Guardar sistema</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL: RISCO MANUAL ══════════════════════════════════════════ -->
+<div class="overlay" id="riskModal">
+<div class="modal">
+  <div class="mhdr"><div class="mtitle" id="riskMTitle">Novo risco</div><button class="btn btn-sm" onclick="closeRiskModal()">Fechar ✕</button></div>
+  <div class="fgrid">
+    <div class="fg full"><label>Título *</label><input id="rf-title" type="text" placeholder="Ex: Injeção SQL"></div>
+    <div class="fg full"><label>Descrição</label><textarea id="rf-desc" rows="2" placeholder="Cenário de risco..."></textarea></div>
+    <div class="fg"><label>Sistema</label><select id="rf-sys"><option value="">— Sem sistema —</option></select></div>
+    <div class="fg"><label>Biblioteca de origem</label><select id="rf-lib"><option value="">— Nenhuma —</option></select></div>
+    <div class="fg"><label>Domínio</label>
+      <select id="rf-domain">
+        <option>Acesso e Identidade</option><option>Infraestrutura e Rede</option><option>Aplicações e Software</option>
+        <option>Dados e Privacidade</option><option>Operações e Continuidade</option><option>Terceiros e Supply Chain</option>
+        <option>Física e Ambiental</option><option>Conformidade e Regulatório</option>
+      </select>
+    </div>
+    <div class="fg"><label>Proprietário</label><input id="rf-owner" type="text"></div>
+    <div class="fg"><label>Vetor CIA</label>
+      <select id="rf-cia"><option value="">Não especificado</option><option value="C">Confidencialidade</option><option value="I">Integridade</option><option value="A">Disponibilidade</option><option value="CIA">C+I+A</option></select>
+    </div>
+  </div>
+  <div class="fgrid3" style="margin-top:12px">
+    <div class="fg"><label>Probabilidade (1–5)</label><select id="rf-prob"><option>1</option><option>2</option><option>3</option><option selected>3</option><option>4</option><option>5</option></select></div>
+    <div class="fg"><label>Impacto inerente (1–5)</label><select id="rf-impact"><option>1</option><option>2</option><option>3</option><option selected>3</option><option>4</option><option>5</option></select></div>
+    <div class="fg"><label>Tratamento</label><select id="rf-treatment"><option>Mitigar</option><option>Aceitar</option><option>Transferir</option><option>Evitar</option></select></div>
+  </div>
+  <div class="fgrid" style="margin-top:12px">
+    <div class="fg full"><label>Plano de tratamento</label><textarea id="rf-plan" rows="2"></textarea></div>
+    <div class="fg"><label>Estado</label><select id="rf-status"><option>Aberto</option><option>Mitigado</option><option>Aceite</option><option>Transferido</option></select></div>
+    <div class="fg"><label>Data de revisão</label><input id="rf-date" type="date"></div>
+  </div>
+  <span class="slabel">Controlos associados</span>
+  <div class="controls-list" id="riskCtrlList"></div>
+  <div class="mfooter">
+    <button class="btn" onclick="closeRiskModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveRisk()">Guardar</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ WIZARD ══════════════════════════════════════════════════════ -->
+<div class="overlay" id="wizModal">
+<div class="modal" style="max-width:900px">
+  <div class="mhdr">
+    <div class="mtitle" id="wizTitle">Análise de Risco</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span id="wizDraftStatus" style="font-size:11px;color:var(--med);opacity:0;transition:opacity .3s"></span>
+      <button class="btn btn-sm" onclick="openJsonModal('Retomar rascunho — cola o JSON abaixo',null,doImportDraft)" title="Retomar rascunho guardado">📂 Retomar</button>
+      <button class="btn btn-sm btn-green" onclick="wizManualSaveDraft()" title="Guardar rascunho como JSON e fechar">💾 Guardar e sair</button>
+      <button class="btn btn-sm" onclick="closeWiz()">Fechar ✕</button>
+    </div>
+  </div>
+  <div class="wsteps" id="wsteps"></div>
+
+  <!-- Step 0: CIA -->
+  <div class="wpanel" id="wp0">
+    <div class="wq">Classificação CIA para esta análise</div>
+    <div class="wsub" id="wp0sub">Confirma ou ajusta a classificação CIA para o âmbito desta análise.</div>
+    <div class="fgrid3" style="gap:16px;margin-bottom:8px">
+      <div><span class="slabel" style="margin-top:0">Confidencialidade</span><div id="wC" style="display:flex;flex-direction:column;gap:6px;"></div></div>
+      <div><span class="slabel" style="margin-top:0">Integridade</span><div id="wI" style="display:flex;flex-direction:column;gap:6px;"></div></div>
+      <div><span class="slabel" style="margin-top:0">Disponibilidade</span><div id="wA" style="display:flex;flex-direction:column;gap:6px;"></div></div>
+    </div>
+    <div class="wnav"><div></div><button class="btn btn-primary" onclick="wNext(0)">Seguinte →</button></div>
+  </div>
+
+  <!-- Step 1: Libraries (multi-select) -->
+  <div class="wpanel" id="wp1">
+    <div class="wq">Quais as bibliotecas de riscos a utilizar?</div>
+    <div class="wsub">Seleciona uma ou mais bibliotecas. Os riscos de todas as bibliotecas selecionadas serão combinados.</div>
+    <div id="wLibOpts" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;padding-right:4px"></div>
+    <div id="wLibSelected" style="margin-top:12px;font-size:12px;color:var(--med);font-weight:600"></div>
+    <div class="wnav"><button class="btn" onclick="wBack(1)">← Anterior</button><button class="btn btn-primary" onclick="wNext(1)">Seguinte →</button></div>
+  </div>
+
+  <!-- Step 2: Exclude risks -->
+  <div class="wpanel" id="wp2">
+    <div class="wq">Seleciona os riscos a incluir na análise</div>
+    <div class="wsub">Desmarca os riscos que não são aplicáveis a este sistema. Os desmarcados serão excluídos.</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="wToggleAllRisks(true)">Selecionar todos</button>
+      <button class="btn btn-sm" onclick="wToggleAllRisks(false)">Desmarcar todos</button>
+      <span id="wExcludeCount" style="font-size:12px;color:var(--muted);line-height:2"></span>
+    </div>
+    <div id="wRiskExcludeList" style="max-height:420px;overflow-y:auto;padding-right:4px"></div>
+    <div class="wnav"><button class="btn" onclick="wBack(2)">← Anterior</button><button class="btn btn-primary" onclick="wNext(2)">Seguinte — Avaliar riscos →</button></div>
+  </div>
+
+  <!-- Step 3: Inherent risks (one by one) -->
+  <div class="wpanel" id="wp3">
+    <div class="wprogress" id="wIRProgress"></div>
+    <div class="ir-card">
+      <div class="ir-hdr">
+        <h3 id="wIRName"></h3>
+        <p id="wIRDesc" style="font-size:12px;opacity:.8;margin-top:3px"></p>
+      </div>
+      <div class="ir-body">
+        <div class="ir-risk-ref" id="wIRRef"></div>
+        <div class="slider-row">
+          <div class="slider-lbl">Probabilidade</div>
+          <div class="slider-wrap"><input type="range" min="1" max="5" value="3" id="irProb" oninput="updateIRScore()"></div>
+          <div class="slider-val" id="irProbVal">3 — Possível</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-lbl">Impacto inerente</div>
+          <div class="slider-wrap"><input type="range" min="1" max="5" value="3" id="irImpact" oninput="updateIRScore()"></div>
+          <div class="slider-val" id="irImpactVal">3 — Moderado</div>
+        </div>
+        <div class="ir-score-box">
+          <div>
+            <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Score inerente</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+              <div class="ir-score-num" id="irScoreNum">9</div>
+              <span class="badge" id="irScoreBadge">Médio</span>
+            </div>
+          </div>
+          <div class="ir-score-info">Probabilidade × Impacto<br><span id="irScoreFormula" style="font-weight:600">3 × 3 = 9</span></div>
+        </div>
+        <span class="slabel" style="margin-top:16px">Controlos recomendados pela biblioteca</span>
+        <div class="controls-list" id="wIRCtrls"></div>
+      </div>
+    </div>
+    <div class="wnav">
+      <button class="btn" id="wIRPrev" onclick="irPrev()">← Anterior</button>
+      <button class="btn btn-primary" id="wIRNext" onclick="irNext()">Guardar e seguinte →</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Inherent risk matrix -->
+  <div class="wpanel" id="wp4">
+    <div class="wq">Matriz de risco inerente</div>
+    <div class="wsub">Posicionamento dos riscos avaliados. Cada célula mostra os riscos com esse par probabilidade × impacto.</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <div style="flex:0 0 auto">
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:24px">
+            <div class="mlbl" style="height:52px">5</div><div class="mlbl" style="height:52px">4</div>
+            <div class="mlbl" style="height:52px">3</div><div class="mlbl" style="height:52px">2</div>
+            <div class="mlbl" style="height:52px">1</div>
+            <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--muted);margin-top:4px">Impacto</div>
+          </div>
+          <div>
+            <div id="wMxGrid" style="display:grid;grid-template-columns:repeat(5,52px);gap:3px;"></div>
+            <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="width:52px">1</div><div class="mlbl" style="width:52px">2</div><div class="mlbl" style="width:52px">3</div><div class="mlbl" style="width:52px">4</div><div class="mlbl" style="width:52px">5</div></div>
+            <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px;width:272px">Probabilidade</div>
+          </div>
+        </div>
+        <div class="legend" style="margin-top:10px">
+          <span><i style="background:var(--med-bg);border:1px solid #86efac"></i>Baixo</span>
+          <span><i style="background:var(--high-bg);border:1px solid #fcd34d"></i>Médio</span>
+          <span><i style="background:var(--crit-bg);border:1px solid #fca5a5"></i>Alto</span>
+          <span><i style="background:#7f1d1d"></i>Crítico</span>
+        </div>
+      </div>
+      <div style="flex:1;min-width:220px">
+        <div class="slabel" style="margin-top:0" id="wMxDetailTitle">Clica numa célula</div>
+        <div id="wMxDetail" style="max-height:340px;overflow-y:auto"><p style="font-size:13px;color:var(--muted)">Clica numa célula para ver os riscos.</p></div>
+      </div>
+    </div>
+    <div class="wnav" style="margin-top:16px">
+      <button class="btn" onclick="wBack(4)">← Anterior</button>
+      <button class="btn btn-primary" onclick="wNext(4)">Seguinte — Avaliar controlos →</button>
+    </div>
+  </div>
+
+  <!-- Step 5: Control effectiveness (risk by risk) -->
+  <div class="wpanel" id="wp5">
+    <div class="wprogress" id="wCtrlProgress"></div>
+    <div class="ir-card" id="wCtrlCard">
+      <div class="ir-hdr">
+        <h3 id="wCtrlRiskName"></h3>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap">
+          <span style="font-size:12px;opacity:.8" id="wCtrlRiskScore"></span>
+        </div>
+      </div>
+      <div class="ir-body">
+        <div id="wCtrlList"></div>
+        <div id="wCtrlNoControls" style="display:none;padding:16px;text-align:center;color:var(--muted);font-size:13px">Este risco não tem controlos selecionados.</div>
+      </div>
+    </div>
+    <div class="wnav" style="margin-top:14px">
+      <button class="btn" id="wCtrlPrev" onclick="ctrlEffPrev()">← Anterior</button>
+      <button class="btn btn-primary" id="wCtrlNext" onclick="ctrlEffNext()">Guardar e seguinte →</button>
+    </div>
+  </div>
+
+  <!-- Step 6: Final summary with residual risk -->
+  <div class="wpanel" id="wp6">
+    <div class="wq">Resumo — Risco inerente e residual</div>
+    <div class="wsub" id="wFinalSub"></div>
+    <div id="wFinalCIA" style="margin-bottom:14px"></div>
+    <div class="twrap">
+      <table class="rs-table">
+        <thead><tr><th>Ref.</th><th>Risco</th><th>CIA</th><th>P</th><th>I</th><th>Score inerente</th><th>Eficácia média</th><th>Score residual</th><th>Nível residual</th></tr></thead>
+        <tbody id="wFinalTable"></tbody>
+      </table>
+    </div>
+    <div class="wnav" style="margin-top:16px">
+      <button class="btn" onclick="wBack(6)">← Anterior</button>
+      <button class="btn btn-primary" onclick="wNext(6)">Seguinte — Matriz residual →</button>
+    </div>
+  </div>
+
+  <!-- Step 7: Residual matrix + mitigation plans -->
+  <div class="wpanel" id="wp7">
+    <div class="wq">Matriz de risco residual</div>
+    <div class="wsub">Posicionamento após aplicação dos controlos. Cria planos de mitigação para os riscos residuais.</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px">
+      <div style="flex:0 0 auto">
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:24px">
+            <div class="mlbl" style="height:52px">5</div><div class="mlbl" style="height:52px">4</div>
+            <div class="mlbl" style="height:52px">3</div><div class="mlbl" style="height:52px">2</div>
+            <div class="mlbl" style="height:52px">1</div>
+            <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--muted);margin-top:4px">Impacto</div>
+          </div>
+          <div>
+            <div id="wRxGrid" style="display:grid;grid-template-columns:repeat(5,52px);gap:3px;"></div>
+            <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="width:52px">1</div><div class="mlbl" style="width:52px">2</div><div class="mlbl" style="width:52px">3</div><div class="mlbl" style="width:52px">4</div><div class="mlbl" style="width:52px">5</div></div>
+            <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px;width:272px">Probabilidade</div>
+          </div>
+        </div>
+        <div class="legend" style="margin-top:10px">
+          <span><i style="background:var(--med-bg);border:1px solid #86efac"></i>Baixo</span>
+          <span><i style="background:var(--high-bg);border:1px solid #fcd34d"></i>Médio</span>
+          <span><i style="background:var(--crit-bg);border:1px solid #fca5a5"></i>Alto</span>
+          <span><i style="background:#7f1d1d"></i>Crítico</span>
+        </div>
+      </div>
+      <div style="flex:1;min-width:220px">
+        <div class="slabel" style="margin-top:0" id="wRxDetailTitle">Clica numa célula</div>
+        <div id="wRxDetail"><p style="font-size:13px;color:var(--muted)">Clica numa célula para ver os riscos.</p></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <div><div class="wq" style="font-size:15px;margin-bottom:2px">Planos de mitigação</div>
+      <div style="font-size:13px;color:var(--muted)">Cria planos para os riscos residuais desta análise.</div></div>
+      <button class="btn btn-green" onclick="openPlanFromWiz()">+ Novo plano de mitigação</button>
+    </div>
+    <div id="wPlansList"></div>
+    <div class="wnav" style="margin-top:16px">
+      <button class="btn" onclick="wBack(7)">← Anterior</button>
+      <button class="btn btn-primary" onclick="wSave()">Registar análise ✓</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+// DATA — LIBRARIES
+// ════════════════════════════════════════════════════════════════════
+const LIBS = {
+  "OWASP Top 10 Web": {
+    id: "owasp-web", color: "#dc2626",
+    desc: "Os 10 riscos de segurança mais críticos para aplicações web (OWASP 2021).",
+    risks: [
+      {id:"A01",name:"Broken Access Control",cia:"C",desc:"Falhas no controlo de acesso permitem que utilizadores acedam a recursos ou funções não autorizadas.",ctrls:["C-001","C-002","C-011"]},
+      {id:"A02",name:"Cryptographic Failures",cia:"C",desc:"Falhas na proteção de dados em trânsito e em repouso, expondo informação sensível.",ctrls:["C-004","C-005"]},
+      {id:"A03",name:"Injection",cia:"CIA",desc:"Injeção de comandos maliciosos (SQL, NoSQL, OS) através de dados não validados.",ctrls:["C-006","C-012"]},
+      {id:"A04",name:"Insecure Design",cia:"CIA",desc:"Ausência de padrões de design seguro e modelação de ameaças na fase de arquitetura.",ctrls:["C-012"]},
+      {id:"A05",name:"Security Misconfiguration",cia:"CIA",desc:"Configurações inseguras por omissão, permissões excessivas, serviços desnecessários ativos.",ctrls:["C-006","C-008"]},
+      {id:"A06",name:"Vulnerable and Outdated Components",cia:"CIA",desc:"Uso de componentes com vulnerabilidades conhecidas sem atualização.",ctrls:["C-006"]},
+      {id:"A07",name:"Identification and Authentication Failures",cia:"C",desc:"Falhas em mecanismos de autenticação permitindo comprometimento de credenciais.",ctrls:["C-001","C-002"]},
+      {id:"A08",name:"Software and Data Integrity Failures",cia:"I",desc:"Código e infraestrutura sem verificação de integridade — ataques à supply chain.",ctrls:["C-006","C-007"]},
+      {id:"A09",name:"Security Logging and Monitoring Failures",cia:"A",desc:"Ausência de logging e monitorização eficaz, dificultando deteção e resposta a incidentes.",ctrls:["C-003","C-009"]},
+      {id:"A10",name:"Server-Side Request Forgery (SSRF)",cia:"C",desc:"Aplicação web faz pedidos a recursos internos não intencionados a partir de input do utilizador.",ctrls:["C-008","C-003"]},
+    ]
+  },
+  "OWASP API Top 10": {
+    id: "owasp-api", color: "#7c3aed",
+    desc: "Os 10 riscos de segurança mais críticos para APIs (OWASP API Security 2023).",
+    risks: [
+      {id:"API1",name:"Broken Object Level Authorization",cia:"C",desc:"APIs expõem endpoints que manipulam objetos sem validação adequada de autorização.",ctrls:["C-001","C-002","C-011"]},
+      {id:"API2",name:"Broken Authentication",cia:"C",desc:"Mecanismos de autenticação implementados incorretamente, comprometendo tokens e sessões.",ctrls:["C-001","C-002"]},
+      {id:"API3",name:"Broken Object Property Level Authorization",cia:"C",desc:"Exposição ou modificação indevida de propriedades de objetos — massa assignment e exposição excessiva.",ctrls:["C-011","C-002"]},
+      {id:"API4",name:"Unrestricted Resource Consumption",cia:"A",desc:"Ausência de limites no consumo de recursos — DDoS, abuso de rate, custos excessivos.",ctrls:["C-008","C-003"]},
+      {id:"API5",name:"Broken Function Level Authorization",cia:"C",desc:"Políticas de autorização insuficientes a nível de funções, permitindo acesso administrativo.",ctrls:["C-001","C-002"]},
+      {id:"API6",name:"Unrestricted Access to Sensitive Business Flows",cia:"CIA",desc:"APIs expõem fluxos de negócio sensíveis sem proteção adequada contra abuso automatizado.",ctrls:["C-003","C-012"]},
+      {id:"API7",name:"Server Side Request Forgery",cia:"C",desc:"API obtém recursos remotos a partir de URL fornecida pelo utilizador sem validação.",ctrls:["C-008"]},
+      {id:"API8",name:"Security Misconfiguration",cia:"CIA",desc:"Configurações inseguras em todos os níveis da stack — TLS, headers, CORS, mensagens de erro.",ctrls:["C-005","C-006","C-008"]},
+      {id:"API9",name:"Improper Inventory Management",cia:"CIA",desc:"Endpoints não documentados, versões antigas expostas, ambientes de teste em produção.",ctrls:["C-006","C-011"]},
+      {id:"API10",name:"Unsafe Consumption of APIs",cia:"CIA",desc:"Confiança excessiva em dados de APIs de terceiros sem validação adequada.",ctrls:["C-006","C-012"]},
+    ]
+  },
+  "CIS Top 18": {
+    id: "cis-18", color: "#0369a1",
+    desc: "Os 18 controlos críticos de segurança do CIS para infraestrutura e operações.",
+    risks: [
+      {id:"CIS1",name:"Inventário não controlado de ativos",cia:"CIA",desc:"Falta de inventário atualizado de hardware e software — shadow IT e ativos não geridos.",ctrls:["C-006","C-011"]},
+      {id:"CIS2",name:"Configurações inseguras de software",cia:"CIA",desc:"Configurações por omissão ou inadequadas em sistemas operativos, aplicações e dispositivos.",ctrls:["C-006","C-008"]},
+      {id:"CIS3",name:"Proteção de dados inadequada",cia:"C",desc:"Ausência de encriptação, classificação e controlos de acesso adequados para dados sensíveis.",ctrls:["C-004","C-005","C-010"]},
+      {id:"CIS4",name:"Exposição de serviços de rede",cia:"CIA",desc:"Serviços e portos de rede expostos desnecessariamente, aumentando a superfície de ataque.",ctrls:["C-008","C-006"]},
+      {id:"CIS5",name:"Gestão de acessos privilegiados deficiente",cia:"CIA",desc:"Contas privilegiadas sem controlo adequado, MFA, ou revisão periódica.",ctrls:["C-001","C-002","C-011"]},
+      {id:"CIS6",name:"Gestão de acessos de utilizadores fraca",cia:"C",desc:"Ausência de gestão do ciclo de vida de contas, permissões excessivas e acesso sem necessidade.",ctrls:["C-001","C-011"]},
+      {id:"CIS7",name:"Gestão de vulnerabilidades ineficaz",cia:"CIA",desc:"Ausência de processo de scanning, priorização e remediação de vulnerabilidades.",ctrls:["C-006","C-012"]},
+      {id:"CIS8",name:"Gestão de logs e auditoria insuficiente",cia:"CIA",desc:"Logs insuficientes, não centralizados ou sem análise — dificultando deteção de incidentes.",ctrls:["C-003","C-009"]},
+      {id:"CIS9",name:"Proteção de email e web inadequada",cia:"CIA",desc:"Ausência de filtros anti-phishing, anti-malware e controlo de conteúdo web.",ctrls:["C-009","C-003"]},
+      {id:"CIS10",name:"Defesas contra malware insuficientes",cia:"CIA",desc:"Proteção inadequada contra malware, ransomware e código malicioso.",ctrls:["C-007","C-009"]},
+    ]
+  },
+  "ISO 27001 Annex A": {
+    id: "iso-27001", color: "#065f46",
+    desc: "Riscos mapeados aos controlos do Anexo A da ISO/IEC 27001:2022 (93 controlos em 4 domínios).",
+    risks: [
+      {id:"5.x",name:"Políticas e organização de segurança",cia:"CIA",desc:"Ausência ou inadequação de políticas, responsabilidades e organização para a gestão da segurança.",ctrls:["C-009","C-011"]},
+      {id:"6.x",name:"Gestão de recursos humanos",cia:"CIA",desc:"Riscos associados a colaboradores — formação insuficiente, ameaça interna, saída sem revogação de acessos.",ctrls:["C-001","C-011"]},
+      {id:"7.x",name:"Segurança física e ambiental",cia:"CIA",desc:"Acesso físico não autorizado a instalações e equipamentos, destruição ou roubo de ativos.",ctrls:["C-007"]},
+      {id:"8.1",name:"Gestão de ativos e inventário",cia:"CIA",desc:"Ativos de informação não identificados, classificados ou geridos adequadamente.",ctrls:["C-006","C-011"]},
+      {id:"8.2",name:"Controlo de acessos e identidade",cia:"C",desc:"Acessos não autorizados por falhas em autenticação, autorização ou gestão de identidades.",ctrls:["C-001","C-002","C-011"]},
+      {id:"8.3",name:"Proteção contra malware",cia:"CIA",desc:"Infeção por malware, ransomware ou código malicioso com impacto em dados e operações.",ctrls:["C-007","C-009"]},
+      {id:"8.4",name:"Backup e recuperação",cia:"A",desc:"Perda de dados por ausência ou falha de backups e procedimentos de recuperação.",ctrls:["C-007"]},
+      {id:"8.5",name:"Criptografia inadequada",cia:"C",desc:"Dados sensíveis não protegidos por encriptação adequada em repouso ou em trânsito.",ctrls:["C-004","C-005"]},
+      {id:"8.6",name:"Segurança de redes e comunicações",cia:"CIA",desc:"Ausência de segmentação, monitorização e controlos de rede adequados.",ctrls:["C-008","C-003"]},
+      {id:"8.7",name:"Gestão de incidentes de segurança",cia:"CIA",desc:"Ausência de processo de deteção, resposta e lições aprendidas de incidentes de segurança.",ctrls:["C-003","C-009"]},
+    ]
+  },
+  "NIST SP 800-53": {
+    id: "nist-800-53", color: "#1e40af",
+    desc: "Riscos baseados nas famílias de controlos do NIST SP 800-53 Rev. 5 para sistemas cloud e críticos.",
+    risks: [
+      {id:"AC",name:"Controlo de Acesso (Access Control)",cia:"C",desc:"Falhas nas políticas e mecanismos de controlo de acesso — AC-1 a AC-25.",ctrls:["C-001","C-002","C-011"]},
+      {id:"AU",name:"Auditoria e Responsabilização (Audit)",cia:"CIA",desc:"Logs insuficientes, não protegidos ou sem revisão — AU-1 a AU-16.",ctrls:["C-003","C-011"]},
+      {id:"CM",name:"Gestão de Configurações (Config Mgmt)",cia:"CIA",desc:"Configurações não geridas, baseline desconhecida, mudanças sem controlo — CM-1 a CM-14.",ctrls:["C-006","C-008"]},
+      {id:"CP",name:"Planeamento de Contingência",cia:"A",desc:"Ausência de planos de contingência, backups ou testes de recuperação — CP-1 a CP-13.",ctrls:["C-007","C-009"]},
+      {id:"IA",name:"Identificação e Autenticação",cia:"C",desc:"Mecanismos de autenticação fracos, sem MFA ou gestão inadequada de credenciais — IA-1 a IA-13.",ctrls:["C-001","C-002"]},
+      {id:"IR",name:"Resposta a Incidentes",cia:"CIA",desc:"Capacidade de resposta a incidentes inadequada — deteção, contenção e recuperação — IR-1 a IR-10.",ctrls:["C-003","C-009"]},
+      {id:"RA",name:"Avaliação de Risco",cia:"CIA",desc:"Ausência de processo formal de avaliação e monitorização contínua do risco — RA-1 a RA-10.",ctrls:["C-012","C-011"]},
+      {id:"SC",name:"Proteção de Sistemas e Comunicações",cia:"CIA",desc:"Falhas na separação de fronteiras, encriptação e proteção de comunicações — SC-1 a SC-51.",ctrls:["C-005","C-008"]},
+      {id:"SI",name:"Integridade de Sistemas e Informação",cia:"I",desc:"Ausência de deteção de malware, monitorização de integridade e gestão de patches — SI-1 a SI-23.",ctrls:["C-006","C-003"]},
+      {id:"SR",name:"Gestão de Risco na Supply Chain",cia:"CIA",desc:"Riscos de terceiros, componentes comprometidos e dependências não geridas — SR-1 a SR-12.",ctrls:["C-006","C-011"]},
+    ]
+  }
+};
+
+const LIB_NAMES = Object.keys(LIBS);
+
+const CTRLS = [
+  {id:"C-001",name:"Autenticação multifator (MFA)",type:"Preventivo",fw:"ISO 27001 A.9.4"},
+  {id:"C-002",name:"Gestão de acessos privilegiados (PAM)",type:"Preventivo",fw:"CIS Control 5"},
+  {id:"C-003",name:"SIEM / monitorização de eventos",type:"Detetivo",fw:"NIST CSF DE.CM"},
+  {id:"C-004",name:"Encriptação de dados em repouso",type:"Preventivo",fw:"ISO 27001 A.10.1"},
+  {id:"C-005",name:"Encriptação em trânsito (TLS 1.3)",type:"Preventivo",fw:"NIST CSF PR.DS"},
+  {id:"C-006",name:"Gestão de vulnerabilidades e patches",type:"Preventivo",fw:"CIS Control 7"},
+  {id:"C-007",name:"Backups e testes de restauro",type:"Resposta",fw:"ISO 27001 A.12.3"},
+  {id:"C-008",name:"Segmentação de rede / Zero Trust",type:"Preventivo",fw:"NIST CSF PR.AC"},
+  {id:"C-009",name:"Plano de resposta a incidentes",type:"Resposta",fw:"ISO 27001 A.16.1"},
+  {id:"C-010",name:"DLP – Prevenção de fuga de dados",type:"Preventivo",fw:"NIST CSF PR.DS"},
+  {id:"C-011",name:"Revisão periódica de acessos",type:"Detetivo",fw:"ISO 27001 A.9.2"},
+  {id:"C-012",name:"Pen testing / red team",type:"Detetivo",fw:"CIS Control 18"},
+];
+
+const CIA_OPTS = [
+  {v:"Reduzido",desc:"Impacto mínimo"},
+  {v:"Médio",desc:"Impacto moderado"},
+  {v:"Alto",desc:"Impacto elevado"},
+  {v:"Muito Alto",desc:"Impacto severo"},
+];
+const CIA_PCT = {Reduzido:25,Médio:50,Alto:75,"Muito Alto":100};
+const CIA_COL = {Reduzido:"#2563eb",Médio:"#16a34a",Alto:"#d97706","Muito Alto":"#7f1d1d"};
+const PROB_LABELS = ["","Muito improvável","Improvável","Possível","Provável","Muito provável"];
+const IMP_LABELS  = ["","Desprezível","Menor","Moderado","Grave","Catastrófico"];
+
+let systems = [
+  {id:"S-001",name:"Portal de Clientes",desc:"Aplicação web de self-service para clientes.",type:"Aplicação Web",owner:"CIO",data:["Pessoais","Financeiros"],env:"Produção",cia:{C:"Muito Alto",I:"Alto",A:"Alto"}},
+  {id:"S-002",name:"API de Pagamentos",desc:"API REST de processamento de transações financeiras.",type:"API / Serviço",owner:"CISO",data:["Financeiros","Confidenciais"],env:"Produção",cia:{C:"Muito Alto",I:"Muito Alto",A:"Muito Alto"}},
+  {id:"S-003",name:"GitHub Enterprise",desc:"Plataforma de controlo de versão e CI/CD.",type:"Infraestrutura",owner:"DevSecOps",data:["Confidenciais","Operacionais"],env:"Produção",cia:{C:"Alto",I:"Muito Alto",A:"Médio"}},
+];
+let risks = [];
+let analyses = [];
+
+let editSysId = null, editRiskId = null;
+let wizSysId = null, wizCIA = {C:null,I:null,A:null};
+let ciaState = {C:null,I:null,A:null};
+let ch = {};
+
+// ════════════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════════════
+function lvl(s){if(s>=17)return"Crítico";if(s>=10)return"Alto";if(s>=4)return"Médio";return"Baixo";}
+function sc(s){if(s>=17)return"critical";if(s>=10)return"high";if(s>=4)return"medium";return"low";}
+function bc(l){const m={Crítico:"b-critico",Alto:"b-alto",Médio:"b-medio",Baixo:"b-reduzido","Muito Alto":"b-muitoalto",Reduzido:"b-reduzido",Aberto:"b-aberto",Mitigado:"b-mitigado",Aceite:"b-aceite",Transferido:"b-transferido"};return"badge "+(m[l]||"b-reduzido");}
+function ctc(t){return t==="Preventivo"?"ct-prev":t==="Detetivo"?"ct-det":"ct-resp";}
+function sysById(id){return systems.find(s=>s.id===id);}
+function sysCrit(s){const v=[CIA_PCT[s.cia.C]||0,CIA_PCT[s.cia.I]||0,CIA_PCT[s.cia.A]||0];const a=v.reduce((x,y)=>x+y,0)/3;if(a>=88)return"Muito Alto";if(a>=63)return"Alto";if(a>=38)return"Médio";return"Reduzido";}
+function nextSysId(){return"S-"+String(Math.max(0,...systems.map(s=>parseInt(s.id.replace("S-",""))||0))+1).padStart(3,"0");}
+function nextRiskId(){return"R-"+String(Math.max(0,...(risks.length?risks.map(r=>parseInt(r.id.replace("R-",""))||0):[0]))+1).padStart(3,"0");}
+function nextAnalysisId(){return"AN-"+String(Math.max(0,...(analyses.length?analyses.map(a=>parseInt(a.id.replace("AN-",""))||0):[0]))+1).padStart(3,"0");}
+function ctrl(id){return CTRLS.find(c=>c.id===id);}
+
+// ════════════════════════════════════════════════════════════════════
+// TAB
+// ════════════════════════════════════════════════════════════════════
+function gotoTab(name,btn){
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById("section-"+name).classList.add("active");
+  const fn={dashboard:renderDash,systems:renderSystems,analyses:renderAnalyses,register:renderTable,libraries:renderLibraries,controls:renderControls,matrix:renderMatrix,plans:renderPlans,users:renderUsers,help:()=>{}};
+  if(fn[name])fn[name]();
+  if(name==="register"||name==="systems")syncSysFilter();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════════════════════
+function renderDash(){
+  const tot=risks.length,crit=risks.filter(r=>lvl(r.prob*r.impact)==="Crítico").length,
+    high=risks.filter(r=>lvl(r.prob*r.impact)==="Alto").length,
+    open=risks.filter(r=>r.status==="Aberto").length;
+  document.getElementById("metrics").innerHTML=`
+    <div class="metric"><div class="mlabel">Sistemas</div><div class="mvalue" style="color:var(--accent)">${systems.length}</div></div>
+    <div class="metric"><div class="mlabel">Análises</div><div class="mvalue" style="color:#374151">${analyses.length}</div></div>
+    <div class="metric"><div class="mlabel">Total riscos</div><div class="mvalue" style="color:#374151">${tot}</div></div>
+    <div class="metric"><div class="mlabel">Críticos</div><div class="mvalue" style="color:var(--crit)">${crit}</div></div>
+    <div class="metric"><div class="mlabel">Altos</div><div class="mvalue" style="color:var(--high)">${high}</div></div>
+    <div class="metric"><div class="mlabel">Em aberto</div><div class="mvalue" style="color:${open?"var(--high)":"var(--med)"}">${open}</div></div>`;
+
+  const lc={Crítico:0,Alto:0,Médio:0,Baixo:0};
+  risks.forEach(r=>lc[lvl(r.prob*r.impact)]++);
+  const sc2={};
+  risks.forEach(r=>{const s=sysById(r.system);const k=s?s.name:"Sem sistema";sc2[k]=(sc2[k]||0)+1;});
+
+  if(ch.level)ch.level.destroy();if(ch.sys)ch.sys.destroy();
+  ch.level=new Chart(document.getElementById("cLevel"),{type:"doughnut",data:{labels:Object.keys(lc),datasets:[{data:Object.values(lc),backgroundColor:["#7f1d1d","#d97706","#16a34a","#2563eb"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  ch.sys=new Chart(document.getElementById("cSystem"),{type:"bar",data:{labels:Object.keys(sc2),datasets:[{data:Object.values(sc2),backgroundColor:"#1d3461",borderRadius:4,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{stepSize:1},grid:{color:"rgba(0,0,0,.06)"}},y:{ticks:{font:{size:11}}}}}});
+
+  const top=[...risks].sort((a,b)=>b.prob*b.impact-a.prob*a.impact).slice(0,5);
+  document.getElementById("topTable").innerHTML=top.length?top.map(r=>{const s=r.prob*r.impact;const sys=sysById(r.system);return`<tr><td class="rid">${r.id}</td><td>${r.title}</td><td style="font-size:12px">${sys?sys.name:"—"}</td><td>${r.libName?`<span class="b-lib">${r.libName}</span>`:"—"}</td><td><div class="score s-${sc(s)}">${s}</div></td><td><span class="${bc(lvl(s))}">${lvl(s)}</span></td><td><span class="${bc(r.status)}">${r.status}</span></td></tr>`;}).join(""):"<tr><td colspan='7' class='empty'>Sem riscos</td></tr>";
+}
+
+// ════════════════════════════════════════════════════════════════════
+// SYSTEMS
+// ════════════════════════════════════════════════════════════════════
+function buildCIAOpts(cid,dim,sel){
+  document.getElementById(cid).innerHTML=CIA_OPTS.map(o=>`
+    <div class="copt ${o.v===sel?"selected":""}" onclick="pickCIA('${dim}','${o.v}',this,'${cid}')">
+      <input type="radio" name="cia${cid}${dim}" value="${o.v}" ${o.v===sel?"checked":""}> 
+      <div><div class="copt-lbl">${o.v}</div><div class="copt-desc">${o.desc}</div></div>
+    </div>`).join("");
+}
+function pickCIA(dim,val,el,cid){
+  ciaState[dim]=val;
+  document.querySelectorAll("#"+cid+" .copt").forEach(o=>o.classList.remove("selected"));
+  el.classList.add("selected");el.querySelector("input").checked=true;
+}
+
+function renderSystems(){
+  const q=(document.getElementById("sysSearch").value||"").toLowerCase();
+  const ft=document.getElementById("sysFilter").value;
+  const f=systems.filter(s=>(!q||s.name.toLowerCase().includes(q)||s.owner.toLowerCase().includes(q))&&(!ft||s.type===ft));
+  const g=document.getElementById("sysGrid"),em=document.getElementById("sysEmpty");
+  if(!f.length){g.innerHTML="";em.style.display="block";return;}
+  em.style.display="none";
+  g.innerHTML=f.map(s=>{
+    const crit=sysCrit(s);
+    const rc=risks.filter(r=>r.system===s.id).length;
+    const ac=analyses.filter(a=>a.system===s.id).length;
+    return`<div class="sys-card">
+      <div class="sys-top"><div><div class="sys-name">${s.name}</div><div class="sys-sub">${s.type} · ${s.env}</div></div><span class="${bc(crit)}">${crit}</span></div>
+      <div class="sys-desc">${s.desc||"—"}</div>
+      <div>${ciaRow("Confidencialidade",s.cia.C)}${ciaRow("Integridade",s.cia.I)}${ciaRow("Disponibilidade",s.cia.A)}</div>
+      <div style="font-size:12px;color:var(--muted)"><strong>Dados:</strong> ${(s.data||[]).join(", ")||"—"}<br><strong>Proprietário:</strong> ${s.owner||"—"}</div>
+      <div class="sys-footer">
+        <span style="font-size:12px;color:var(--muted)">${ac} análise${ac!==1?"s":""} · ${rc} risco${rc!==1?"s":""}</span>
+        <div class="spacer"></div>
+        <button class="btn btn-sm btn-accent" onclick="startWiz('${s.id}')">▶ Analisar${hasDraftForSystem(s.id)?' 📝':''}</button>
+        <button class="btn btn-sm" onclick="openSysEdit('${s.id}')">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="delSys('${s.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function ciaRow(label,val){
+  const pct=CIA_PCT[val]||0,col=CIA_COL[val]||"#2563eb";
+  return`<div class="cia-row"><div class="cia-lbl">${label}</div><div class="cia-bw"><div class="cia-b" style="width:${pct}%;background:${col}"></div></div><div class="cia-v"><span class="${bc(val)}">${val||"—"}</span></div></div>`;
+}
+
+function syncSysFilter(){
+  const el=document.getElementById("rSystem");if(!el)return;
+  const cur=el.value;
+  el.innerHTML="<option value=''>Todos os sistemas</option>"+systems.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  el.value=cur;
+}
+
+function openSysAdd(){
+  editSysId=null;ciaState={C:null,I:null,A:null};
+  document.getElementById("sysMTitle").textContent="Novo sistema";
+  ["sf-name","sf-desc","sf-owner"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("sf-type").value="Aplicação Web";
+  document.getElementById("sf-env").value="Produção";
+  Array.from(document.getElementById("sf-data").options).forEach(o=>o.selected=false);
+  buildCIAOpts("sfC","C",null);buildCIAOpts("sfI","I",null);buildCIAOpts("sfA","A",null);
+  document.getElementById("sysModal").classList.add("open");
+}
+function openSysEdit(id){
+  const s=systems.find(x=>x.id===id);if(!s)return;
+  editSysId=id;ciaState={...s.cia};
+  document.getElementById("sysMTitle").textContent="Editar — "+s.name;
+  document.getElementById("sf-name").value=s.name;document.getElementById("sf-desc").value=s.desc||"";
+  document.getElementById("sf-type").value=s.type;document.getElementById("sf-owner").value=s.owner||"";
+  document.getElementById("sf-env").value=s.env||"Produção";
+  Array.from(document.getElementById("sf-data").options).forEach(o=>o.selected=(s.data||[]).includes(o.value));
+  buildCIAOpts("sfC","C",s.cia.C);buildCIAOpts("sfI","I",s.cia.I);buildCIAOpts("sfA","A",s.cia.A);
+  document.getElementById("sysModal").classList.add("open");
+}
+function closeSysModal(){document.getElementById("sysModal").classList.remove("open");}
+function saveSys(){
+  const name=document.getElementById("sf-name").value.trim();
+  if(!name){alert("O nome é obrigatório.");return;}
+  if(!ciaState.C||!ciaState.I||!ciaState.A){alert("Classifica os três vetores CIA.");return;}
+  const data=Array.from(document.getElementById("sf-data").selectedOptions).map(o=>o.value);
+  const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,data,cia:{...ciaState}};
+  if(editSysId){systems[systems.findIndex(x=>x.id===editSysId)]=s;}else{systems.push(s);}
+  closeSysModal();persistAppData();renderSystems();syncSysFilter();
+}
+function delSys(id){
+  if(!confirm("Remover este sistema? Os riscos e análises associados serão desligados."))return;
+  systems=systems.filter(s=>s.id!==id);
+  risks.forEach(r=>{if(r.system===id)r.system="";});
+  analyses=analyses.filter(a=>a.system!==id);
+  persistAppData();renderSystems();syncSysFilter();
+}
+// ════════════════════════════════════════════════════════════════════
+function renderAnalyses(){
+  const tb=document.getElementById("analysesTable"),em=document.getElementById("analysesEmpty");
+  if(!analyses.length){tb.innerHTML="";em.style.display="block";return;}
+  em.style.display="none";
+  tb.innerHTML=analyses.map(a=>{
+    const sys=sysById(a.system);
+    const aRisks=risks.filter(r=>r.analysis===a.id);
+    const scores=aRisks.map(r=>r.prob*r.impact);
+    const avg=scores.length?Math.round(scores.reduce((x,y)=>x+y,0)/scores.length):0;
+    const max=scores.length?Math.max(...scores):0;
+    return`<tr>
+      <td class="rid">${a.id}</td>
+      <td style="font-weight:600">${sys?sys.name:"—"}</td>
+      <td><span class="b-lib">${a.lib}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${a.date}</td>
+      <td style="text-align:center">${aRisks.length}</td>
+      <td style="text-align:center"><div class="score s-${sc(avg)}">${avg}</div></td>
+      <td><span class="${bc(lvl(max))}">${lvl(max)}</span></td>
+      <td><button class="btn btn-sm btn-danger" onclick="delAnalysis('${a.id}')">Remover</button></td>
+    </tr>`;
+  }).join("");
+}
+
+function delAnalysis(id){
+  if(!confirm("Remover esta análise? Os riscos associados também serão removidos."))return;
+  risks=risks.filter(r=>r.analysis!==id);
+  analyses=analyses.filter(a=>a.id!==id);
+  persistAppData();renderAnalyses();renderTable();renderDash();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// RISK TABLE
+// ════════════════════════════════════════════════════════════════════
+function renderTable(){
+  syncSysFilter();
+  const q=(document.getElementById("rSearch").value||"").toLowerCase();
+  const fl=document.getElementById("rLevel").value;
+  const fs=document.getElementById("rStatus").value;
+  const fsy=document.getElementById("rSystem").value;
+  const f=risks.filter(r=>{const l=lvl(r.prob*r.impact);return(!q||r.title.toLowerCase().includes(q))&&(!fl||l===fl)&&(!fs||r.status===fs)&&(!fsy||r.system===fsy);});
+  const tb=document.getElementById("riskTable"),em=document.getElementById("emptyReg");
+  if(!f.length){tb.innerHTML="";em.style.display="block";return;}
+  em.style.display="none";
+  tb.innerHTML=f.map(r=>{const s=r.prob*r.impact;const l=lvl(s);const sys=sysById(r.system);return`<tr>
+    <td class="rid">${r.id}</td>
+    <td style="max-width:200px"><div style="font-weight:600">${r.title}</div><div style="font-size:11px;color:var(--muted)">${r.owner||"—"}</div></td>
+    <td style="font-size:12px">${sys?sys.name:"—"}</td>
+    <td>${r.libName?`<span class="b-lib">${r.libRef||""}</span>`:"—"}</td>
+    <td style="text-align:center">${r.prob}</td>
+    <td style="text-align:center">${r.impact}</td>
+    <td style="text-align:center"><div class="score s-${sc(s)}">${s}</div></td>
+    <td><span class="${bc(l)}">${l}</span></td>
+    <td style="font-size:12px">${r.treatment||"—"}</td>
+    <td><span class="${bc(r.status)}">${r.status}</span></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-sm" onclick="openRiskEdit('${r.id}')">Editar</button>
+      <button class="btn btn-sm btn-danger" onclick="delRisk('${r.id}')">✕</button>
+    </td></tr>`;}).join("");
+}
+
+// ════════════════════════════════════════════════════════════════════
+// RISK MODAL (manual)
+// ════════════════════════════════════════════════════════════════════
+function buildCtrlList(cid,sel){
+  document.getElementById(cid).innerHTML=CTRLS.map(c=>`<div class="ctrl-item"><input type="checkbox" id="${cid}-${c.id}" value="${c.id}" ${(sel||[]).includes(c.id)?"checked":""}><label for="${cid}-${c.id}" style="flex:1;cursor:pointer;font-size:12px"><strong>${c.id}</strong> — ${c.name}</label><span class="ct ${ctc(c.type)}">${c.type}</span></div>`).join("");
+}
+function getChecked(cid){return[...document.querySelectorAll("#"+cid+" input:checked")].map(x=>x.value);}
+function fillSysSel(selId,sid){
+  document.getElementById(selId).innerHTML="<option value=''>— Sem sistema —</option>"+systems.map(s=>`<option value="${s.id}" ${s.id===sid?"selected":""}>${s.name}</option>`).join("");
+}
+function fillLibSel(selId,lib){
+  document.getElementById(selId).innerHTML="<option value=''>— Nenhuma —</option>"+LIB_NAMES.map(l=>`<option value="${l}" ${l===lib?"selected":""}>${l}</option>`).join("");
+}
+
+function openRiskAdd(sysId){
+  editRiskId=null;
+  document.getElementById("riskMTitle").textContent="Novo risco";
+  ["rf-title","rf-desc","rf-owner","rf-plan"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("rf-domain").value="Acesso e Identidade";
+  document.getElementById("rf-prob").value="3";document.getElementById("rf-impact").value="3";
+  document.getElementById("rf-treatment").value="Mitigar";document.getElementById("rf-status").value="Aberto";
+  document.getElementById("rf-date").value="";document.getElementById("rf-cia").value="";
+  fillSysSel("rf-sys",sysId||"");fillLibSel("rf-lib","");
+  buildCtrlList("riskCtrlList",[]);
+  document.getElementById("riskModal").classList.add("open");
+}
+function openRiskEdit(id){
+  const r=risks.find(x=>x.id===id);if(!r)return;
+  editRiskId=id;
+  document.getElementById("riskMTitle").textContent="Editar "+id;
+  document.getElementById("rf-title").value=r.title;document.getElementById("rf-desc").value=r.desc||"";
+  document.getElementById("rf-domain").value=r.domain||"Acesso e Identidade";document.getElementById("rf-owner").value=r.owner||"";
+  document.getElementById("rf-prob").value=r.prob;document.getElementById("rf-impact").value=r.impact;
+  document.getElementById("rf-treatment").value=r.treatment||"Mitigar";document.getElementById("rf-plan").value=r.plan||"";
+  document.getElementById("rf-status").value=r.status;document.getElementById("rf-date").value=r.date||"";
+  document.getElementById("rf-cia").value=r.cia||"";
+  fillSysSel("rf-sys",r.system||"");fillLibSel("rf-lib",r.libName||"");
+  buildCtrlList("riskCtrlList",r.controls||[]);
+  document.getElementById("riskModal").classList.add("open");
+}
+function closeRiskModal(){document.getElementById("riskModal").classList.remove("open");}
+function saveRisk(){
+  const title=document.getElementById("rf-title").value.trim();
+  if(!title){alert("O título é obrigatório.");return;}
+  const r={id:editRiskId||nextRiskId(),title,desc:document.getElementById("rf-desc").value,domain:document.getElementById("rf-domain").value,owner:document.getElementById("rf-owner").value,system:document.getElementById("rf-sys").value,cia:document.getElementById("rf-cia").value,libName:document.getElementById("rf-lib").value,prob:+document.getElementById("rf-prob").value,impact:+document.getElementById("rf-impact").value,treatment:document.getElementById("rf-treatment").value,plan:document.getElementById("rf-plan").value,status:document.getElementById("rf-status").value,date:document.getElementById("rf-date").value,controls:getChecked("riskCtrlList")};
+  if(editRiskId){risks[risks.findIndex(x=>x.id===editRiskId)]=r;}else{risks.push(r);}
+  closeRiskModal();persistAppData();renderTable();
+}
+function delRisk(id){if(confirm("Remover este risco?")){risks=risks.filter(r=>r.id!==id);persistAppData();renderTable();}}
+
+
+
+// ════════════════════════════════════════════════════════════════════
+// CONTROLS
+// ════════════════════════════════════════════════════════════════════
+function renderControls(){
+  document.getElementById("ctrlTable").innerHTML=CTRLS.map(c=>{
+    const assoc=risks.filter(r=>r.controls&&r.controls.includes(c.id));
+    return`<tr><td class="rid">${c.id}</td><td style="font-weight:600">${c.name}</td><td><span class="ct ${ctc(c.type)}">${c.type}</span></td><td style="font-size:12px;color:var(--muted)">${c.fw}</td><td style="font-size:12px">${assoc.length?assoc.map(r=>`<span class="rid">${r.id}</span> `).join(""):"—"}</td></tr>`;
+  }).join("");
+}
+
+// ════════════════════════════════════════════════════════════════════
+// MATRIX
+// ════════════════════════════════════════════════════════════════════
+function renderMatrix(){
+  const g=document.getElementById("mxGrid");let h="";
+  for(let i=5;i>=1;i--)for(let p=1;p<=5;p++){
+    const s=p*i;const cnt=risks.filter(r=>r.prob===p&&r.impact===i).length;
+    let cls="m-low";if(s>=17)cls="m-crit";else if(s>=10)cls="m-high";else if(s>=4)cls="m-med";
+    h+=`<div class="mcell ${cls}" onclick="showMxDetail(${p},${i},this)">${cnt||""}</div>`;
+  }
+  g.innerHTML=h;
+}
+function showMxDetail(p,i,el){
+  document.querySelectorAll(".mcell").forEach(c=>c.classList.remove("sel"));el.classList.add("sel");
+  const s=p*i;const rs=risks.filter(r=>r.prob===p&&r.impact===i);
+  document.getElementById("mxDetailTitle").textContent=`P=${p} × I=${i} — Score ${s} (${lvl(s)})`;
+  document.getElementById("mxDetail").innerHTML=rs.length?rs.map(r=>{const sys=sysById(r.system);return`<div class="detail-risk"><strong>${r.id} — ${r.title}</strong><br><small style="color:var(--muted)">${sys?sys.name+" · ":""} ${r.libName||""}</small><div style="margin-top:6px"><span class="${bc(r.status)}">${r.status}</span></div></div>`;}).join(""):"<p style='color:var(--muted);font-size:13px'>Nenhum risco nesta posição.</p>";
+}
+
+// ════════════════════════════════════════════════════════════════════
+// WIZARD
+// ════════════════════════════════════════════════════════════════════
+const WIZ_STEPS = ["1. CIA","2. Bibliotecas","3. Riscos","4. Avaliação","5. Matriz inerente","6. Controlos","7. Resumo","8. Matriz residual"];
+let wizStep = 0;
+let wizSelectedLibs = [];
+let wizExcluded = new Set();
+let wizIRItems = [];
+let wizIRIdx = 0;
+let wizCtrlIdx = 0;
+
+function buildWizSteps(active){
+  document.getElementById("wsteps").innerHTML=WIZ_STEPS.map((s,i)=>`<div class="wstep ${i<active?"done":i===active?"active":""}">${s}</div>`).join("");
+}
+function wizGo(n){
+  wizStep=n;
+  buildWizSteps(n);
+  document.querySelectorAll(".wpanel").forEach((p,i)=>p.className="wpanel"+(i===n?" active":""));
+  if(n===2) renderExcludeStep();
+  if(n===4) renderWizMatrix();
+  if(n===5){wizCtrlIdx=0;renderCtrlEffStep();}
+  if(n===6) renderFinalSummary();
+  if(n===7){renderResidualMatrix();renderWizPlans();}
+  // Auto-save draft on every step (except step 0 where we have no data yet)
+  if(n>0 && wizIRItems.length>0) saveDraft();
+  else if(n>1) saveDraft();
+}
+function wNext(step){
+  if(step===0){if(!wizCIA.C||!wizCIA.I||!wizCIA.A){alert("Classifica os três vetores CIA.");return;}}
+  if(step===1){
+    if(!wizSelectedLibs.length){alert("Seleciona pelo menos uma biblioteca.");return;}
+    buildMergedRisks();
+  }
+  if(step===2){
+    const included=wizIRItems.filter(x=>!wizExcluded.has(x._key));
+    if(!included.length){alert("Inclui pelo menos um risco.");return;}
+    wizIRItems=included; wizIRIdx=0; renderIRStep();
+  }
+  if(step===3) saveCurrentIR();
+  if(step===6) renderResidualMatrix();
+  wizGo(step+1);
+}
+function wBack(step){
+  if(step===3) saveCurrentIR();
+  wizGo(step-1);
+}
+
+// Step 0: CIA
+function buildWizCIAOpts(cid,dim,sel){
+  document.getElementById(cid).innerHTML=CIA_OPTS.map(o=>`
+    <div class="copt ${o.v===sel?"selected":""}" onclick="pickWizCIA('${dim}','${o.v}',this,'${cid}')">
+      <input type="radio" name="wcia${dim}" value="${o.v}" ${o.v===sel?"checked":""}> 
+      <div><div class="copt-lbl">${o.v}</div><div class="copt-desc">${o.desc}</div></div>
+    </div>`).join("");
+}
+function pickWizCIA(dim,val,el,cid){
+  wizCIA[dim]=val;
+  document.querySelectorAll("#"+cid+" .copt").forEach(o=>o.classList.remove("selected"));
+  el.classList.add("selected");el.querySelector("input").checked=true;
+}
+
+// Step 1: Libraries multi-select
+function buildLibOpts(){
+  document.getElementById("wLibOpts").innerHTML=allLibNames().map(n=>{
+    const lib=allLibs()[n]; const sel=wizSelectedLibs.includes(n);
+    return`<div class="wopt ${sel?"sel":""}" onclick="toggleLib('${n}',this)" style="cursor:pointer">
+      <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;margin-top:3px" ${sel?"checked":""}> 
+      <div style="border-left:3px solid ${lib.color};padding-left:10px;flex:1">
+        <div class="wol">${n}</div>
+        <div class="wod">${lib.desc} &middot; ${lib.risks.length} ameaças</div>
+      </div>
+    </div>`;
+  }).join("");
+  updateLibSelectedLabel();
+}
+function toggleLib(n,el){
+  const chk=el.querySelector("input[type=checkbox]");
+  if(wizSelectedLibs.includes(n)){wizSelectedLibs=wizSelectedLibs.filter(x=>x!==n);el.classList.remove("sel");chk.checked=false;}
+  else{wizSelectedLibs.push(n);el.classList.add("sel");chk.checked=true;}
+  updateLibSelectedLabel();
+}
+function updateLibSelectedLabel(){
+  const total=wizSelectedLibs.reduce((a,n)=>a+(allLibs()[n]?.risks.length||0),0);
+  document.getElementById("wLibSelected").textContent=wizSelectedLibs.length?`${wizSelectedLibs.length} biblioteca${wizSelectedLibs.length!==1?"s":""} · ${total} risco${total!==1?"s":""} no total`:"";
+}
+
+// Step 2: Exclude risks
+function buildMergedRisks(){
+  wizIRItems=[];wizExcluded=new Set();
+  wizSelectedLibs.forEach(libName=>{
+    const lib=allLibs()[libName];
+    lib.risks.forEach(r=>{
+      const key=libName+"::"+r.id;
+      wizIRItems.push({...r,_lib:libName,_key:key,prob:3,impact:3,selectedCtrls:[...r.ctrls]});
+    });
+  });
+}
+function renderExcludeStep(){
+  document.getElementById("wRiskExcludeList").innerHTML=wizIRItems.map(item=>{
+    const excl=wizExcluded.has(item._key);
+    const safeKey=item._key.replace(/[^a-z0-9]/gi,"-");
+    return`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px;${excl?"opacity:.45;background:var(--bg)":""}">
+      <input type="checkbox" id="excl-${safeKey}" ${excl?"":"checked"} style="width:16px;height:16px;accent-color:var(--accent);margin-top:3px;flex-shrink:0;cursor:pointer" onchange="toggleExclude('${item._key}',this)">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="rid">${item.id}</span>
+          <span style="font-weight:600;font-size:13px">${item.name}</span>
+          <span class="b-lib" style="font-size:10px">${item._lib}</span>
+          <span class="badge b-reduzido" style="font-size:10px">CIA: ${item.cia}</span>
+        </div>
+        ${item.desc?`<div style="font-size:12px;color:var(--muted);margin-top:3px">${item.desc}</div>`:""}
+      </div>
+    </div>`;
+  }).join("");
+  updateExcludeCount();
+}
+function toggleExclude(key,chk){
+  if(chk.checked){wizExcluded.delete(key);}else{wizExcluded.add(key);}
+  renderExcludeStep();
+}
+function wToggleAllRisks(val){
+  if(val){wizExcluded.clear();}else{wizIRItems.forEach(x=>wizExcluded.add(x._key));}
+  renderExcludeStep();
+}
+function updateExcludeCount(){
+  const incl=wizIRItems.length-wizExcluded.size;
+  document.getElementById("wExcludeCount").textContent=`${incl} incluído${incl!==1?"s":""} · ${wizExcluded.size} excluído${wizExcluded.size!==1?"s":""}`;
+}
+
+// Step 3: Inherent Risk one by one
+function renderIRStep(){
+  const item=wizIRItems[wizIRIdx]; const total=wizIRItems.length;
+  document.getElementById("wIRProgress").textContent=`Risco ${wizIRIdx+1} de ${total}`;
+  document.getElementById("wIRName").textContent=`${item.id} — ${item.name}`;
+  document.getElementById("wIRDesc").textContent=item.desc||"";
+  document.getElementById("wIRRef").textContent=`Biblioteca: ${item._lib} · Vetor CIA: ${item.cia}`;
+  document.getElementById("irProb").value=item.prob;
+  document.getElementById("irImpact").value=item.impact;
+  updateIRScore();
+  const safeKey=item._key.replace(/[^a-z0-9]/gi,"-");
+  document.getElementById("wIRCtrls").innerHTML=
+    item.ctrls.map(cid=>{const c=getCtrlForLib(item._lib,cid);if(!c)return"";
+      return`<div class="ctrl-item"><input type="checkbox" id="wirc-${safeKey}-${cid}" value="${cid}" ${item.selectedCtrls.includes(cid)?"checked":""} onchange="toggleIRCtrl('${cid}',this)"><label style="flex:1;cursor:pointer;font-size:12px"><strong>${c.id}</strong> — ${c.name}</label><span class="ct ${ctc(c.type)}">${c.type}</span></div>`;
+    }).join("")+
+    `<details style="margin-top:8px"><summary style="font-size:12px;color:var(--muted);cursor:pointer;padding:4px 0">+ Outros controlos globais</summary><div style="margin-top:6px">`+
+    CTRLS.filter(c=>!item.ctrls.includes(c.id)).map(c=>
+      `<div class="ctrl-item"><input type="checkbox" id="wirc2-${safeKey}-${c.id}" value="${c.id}" ${item.selectedCtrls.includes(c.id)?"checked":""} onchange="toggleIRCtrl('${c.id}',this)"><label style="flex:1;cursor:pointer;font-size:12px;color:var(--muted)"><strong>${c.id}</strong> — ${c.name}</label><span class="ct ${ctc(c.type)}">${c.type}</span></div>`
+    ).join("")+`</div></details>`;
+  document.getElementById("wIRPrev").disabled=(wizIRIdx===0);
+  document.getElementById("wIRNext").textContent=wizIRIdx===total-1?"Concluir avaliação →":"Guardar e seguinte →";
+}
+function toggleIRCtrl(cid,chk){
+  const item=wizIRItems[wizIRIdx];
+  if(chk.checked){if(!item.selectedCtrls.includes(cid))item.selectedCtrls.push(cid);}
+  else{item.selectedCtrls=item.selectedCtrls.filter(x=>x!==cid);}
+}
+function updateIRScore(){
+  const p=+document.getElementById("irProb").value,i=+document.getElementById("irImpact").value,s=p*i,l=lvl(s);
+  document.getElementById("irProbVal").textContent=`${p} — ${PROB_LABELS[p]}`;
+  document.getElementById("irImpactVal").textContent=`${i} — ${IMP_LABELS[i]}`;
+  document.getElementById("irScoreNum").textContent=s;
+  document.getElementById("irScoreFormula").textContent=`${p} \xd7 ${i} = ${s}`;
+  const bd=document.getElementById("irScoreBadge");bd.className=bc(l);bd.textContent=l;
+}
+function saveCurrentIR(){
+  const item=wizIRItems[wizIRIdx];
+  item.prob=+document.getElementById("irProb").value;
+  item.impact=+document.getElementById("irImpact").value;
+}
+function irNext(){
+  saveCurrentIR();
+  saveDraft();
+  if(wizIRIdx<wizIRItems.length-1){wizIRIdx++;renderIRStep();}else{wizGo(4);}
+}
+function irPrev(){
+  saveCurrentIR();
+  saveDraft();
+  if(wizIRIdx>0){wizIRIdx--;renderIRStep();}else{wizGo(2);}
+}
+
+// Step 4: Matrix
+function renderWizMatrix(){
+  const g=document.getElementById("wMxGrid");let h="";
+  for(let i=5;i>=1;i--) for(let p=1;p<=5;p++){
+    const s=p*i;
+    const items=wizIRItems.filter(x=>x.prob===p&&x.impact===i);
+    let cls="m-low";if(s>=17)cls="m-crit";else if(s>=10)cls="m-high";else if(s>=4)cls="m-med";
+    h+=`<div class="mcell ${cls}" style="height:52px;font-size:11px;flex-direction:column;gap:1px" onclick="showWizMxDetail(${p},${i},this)">
+      ${items.length?`<span style="font-weight:700;font-size:14px">${items.length}</span><span style="font-size:9px;opacity:.85;text-align:center;line-height:1.2">${items.slice(0,3).map(x=>x.id).join(" ")}${items.length>3?"…":""}</span>`:""}
+    </div>`;
+  }
+  g.innerHTML=h;
+  document.getElementById("wMxDetail").innerHTML="<p style='font-size:13px;color:var(--muted)'>Clica numa célula.</p>";
+  document.getElementById("wMxDetailTitle").textContent="Clica numa célula";
+}
+function showWizMxDetail(p,i,el){
+  document.querySelectorAll("#wMxGrid .mcell").forEach(c=>c.classList.remove("sel"));el.classList.add("sel");
+  const s=p*i;const items=wizIRItems.filter(x=>x.prob===p&&x.impact===i);
+  document.getElementById("wMxDetailTitle").textContent=`P=${p} \xd7 I=${i} — Score ${s} (${lvl(s)})`;
+  document.getElementById("wMxDetail").innerHTML=items.length
+    ?items.map(x=>`<div class="detail-risk" style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="rid">${x.id}</span><span style="font-weight:600;font-size:13px">${x.name}</span>
+          <span class="b-lib" style="font-size:10px">${x._lib}</span>
+        </div>
+        <div style="margin-top:6px;display:flex;gap:6px">
+          <div class="score s-${sc(s)}" style="width:28px;height:28px;font-size:12px">${s}</div>
+          <span class="${bc(lvl(s))}" style="align-self:center">${lvl(s)}</span>
+        </div>
+      </div>`).join("")
+    :"<p style='color:var(--muted);font-size:13px'>Nenhum risco nesta posição.</p>";
+}
+
+// Step 5: Control effectiveness
+const CTRL_EFF_LABELS=["0 — Nada efetivo","1 — Pouco efetivo","2 — Parcialmente efetivo","3 — Totalmente efetivo"];
+const CTRL_EFF_COLORS=["var(--crit)","var(--high)","#ca8a04","var(--med)"];
+// Redução por nível de eficácia: 0→0%, 1→20%, 2→50%, 3→75%
+const EFF_REDUCTION=[0, 0.20, 0.50, 0.75];
+// Limiar de auto-mitigação: score residual ≤ 3 E eficácia média ≥ 2.5
+const AUTO_MITIG_SCORE = 3;
+const AUTO_MITIG_EFF   = 2.5;
+
+function renderCtrlEffStep(){
+  const total=wizIRItems.length;const item=wizIRItems[wizCtrlIdx];
+  const s=item.prob*item.impact;
+  document.getElementById("wCtrlProgress").textContent=`Risco ${wizCtrlIdx+1} de ${total}`;
+  document.getElementById("wCtrlRiskName").textContent=`${item.id} — ${item.name}`;
+  document.getElementById("wCtrlRiskScore").textContent=`Score inerente: ${s} (${lvl(s)}) · ${item.selectedCtrls.length} controlo${item.selectedCtrls.length!==1?"s":""}`;
+  document.getElementById("wCtrlPrev").disabled=(wizCtrlIdx===0);
+  document.getElementById("wCtrlNext").textContent=wizCtrlIdx===total-1?"Concluir e ver resumo →":"Guardar e seguinte →";
+  if(!item.ctrlEff)item.ctrlEff={};
+  if(!item.ctrlFeedback)item.ctrlFeedback={};
+  if(!item.selectedCtrls.length){
+    document.getElementById("wCtrlList").innerHTML="";
+    document.getElementById("wCtrlNoControls").style.display="block";return;
+  }
+  document.getElementById("wCtrlNoControls").style.display="none";
+  document.getElementById("wCtrlList").innerHTML=item.selectedCtrls.map(cid=>{
+    const c=getCtrlForLib(item._lib,cid)||{id:cid,name:cid,type:"Preventivo"};
+    const eff=item.ctrlEff[cid]??-1; const fb=item.ctrlFeedback[cid]||"";
+    return`<div style="border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="font-weight:700">${c.id}</span>
+        <span style="font-size:13px">${c.name}</span>
+        <span class="ct ${ctc(c.type)}">${c.type}</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Feedback de implementação</label>
+          <textarea id="fb-${cid}" rows="3" style="width:100%;border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:12px;font-family:inherit;color:var(--text);resize:vertical" placeholder="Estado atual da implementação..." oninput="saveCtrlFb('${cid}',this.value)">${fb}</textarea>
+        </div>
+        <div style="flex-shrink:0;min-width:200px">
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px">Eficácia do controlo</label>
+          <select id="eff-${cid}" style="width:100%;border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;font-size:13px;font-family:inherit" onchange="saveCtrlEff('${cid}',this.value)">
+            <option value="-1" ${eff==-1?"selected":""}>— Não avaliado —</option>
+            ${CTRL_EFF_LABELS.map((l,i)=>`<option value="${i}" ${eff==i?"selected":""}>${l}</option>`).join("")}
+          </select>
+          ${eff>=0?`<div style="margin-top:6px;font-size:12px;font-weight:600;color:${CTRL_EFF_COLORS[eff]}">● ${CTRL_EFF_LABELS[eff]}</div>`:""}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+function saveCtrlEff(cid,val){wizIRItems[wizCtrlIdx].ctrlEff[cid]=+val;}
+function saveCtrlFb(cid,val){wizIRItems[wizCtrlIdx].ctrlFeedback[cid]=val;}
+function ctrlEffNext(){
+  saveDraft();
+  if(wizCtrlIdx<wizIRItems.length-1){wizCtrlIdx++;renderCtrlEffStep();}else{wizGo(6);}
+}
+function ctrlEffPrev(){
+  saveDraft();
+  if(wizCtrlIdx>0){wizCtrlIdx--;renderCtrlEffStep();}else{wizGo(4);}
+}
+
+// Residual risk calc
+function calcResidual(item){
+  const si=item.prob*item.impact;
+  const noCtrl={score:si,prob:item.prob,impact:item.impact,avgEff:-1,autoMitigated:false};
+  if(!item.ctrlEff||!item.selectedCtrls.length) return noCtrl;
+  const effs=item.selectedCtrls.map(cid=>item.ctrlEff?.[cid]).filter(e=>e!==undefined&&e>=0).map(Number);
+  if(!effs.length) return noCtrl;
+  const avgEff=effs.reduce((a,b)=>a+b,0)/effs.length;
+  const reduction=EFF_REDUCTION[Math.round(avgEff)]||0;
+  const residProb=Math.max(1,Math.round(item.prob*(1-reduction)));
+  const residScore=residProb*item.impact;
+  const autoMitigated=(residScore<=AUTO_MITIG_SCORE && avgEff>=AUTO_MITIG_EFF);
+  return{score:residScore,prob:residProb,impact:item.impact,
+    avgEff:Math.round(avgEff*10)/10, autoMitigated};
+}
+
+// Step 6: Final summary
+function renderFinalSummary(){
+  const sys=sysById(wizSysId);
+  const autoMitigCount=wizIRItems.filter(x=>calcResidual(x).autoMitigated).length;
+  document.getElementById("wFinalSub").textContent=
+    `Sistema: ${sys?sys.name:"—"} · ${wizSelectedLibs.join(", ")} · ${wizIRItems.length} riscos`;
+  document.getElementById("wFinalCIA").innerHTML=`
+    <div class="card0" style="margin-bottom:10px">
+      <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+        <div>${ciaRow("Confidencialidade",wizCIA.C)}</div>
+        <div>${ciaRow("Integridade",wizCIA.I)}</div>
+        <div>${ciaRow("Disponibilidade",wizCIA.A)}</div>
+        ${autoMitigCount>0?`<div style="margin-left:auto;background:var(--med-bg);border:1px solid var(--med-bd);border-radius:var(--r);padding:8px 14px;font-size:13px;color:var(--med);font-weight:600">
+          ✓ ${autoMitigCount} risco${autoMitigCount!==1?"s":""} auto-mitigado${autoMitigCount!==1?"s":""} (score residual ≤ ${AUTO_MITIG_SCORE} e eficácia ≥ ${AUTO_MITIG_EFF})
+        </div>`:""}
+      </div>
+    </div>`;
+  document.getElementById("wFinalTable").innerHTML=wizIRItems.map(item=>{
+    const si=item.prob*item.impact; const li=lvl(si);
+    const res=calcResidual(item); const lr=lvl(res.score);
+    const effDisplay=res.avgEff>=0
+      ?`<span style="font-weight:600;color:${CTRL_EFF_COLORS[Math.round(res.avgEff)]}">${res.avgEff.toFixed(1)}/3</span>`
+      :"<span style='color:var(--muted)'>—</span>";
+    const improved=res.score<si;
+    const autoTag=res.autoMitigated
+      ?`<span class="badge b-mitigado" style="font-size:10px;margin-left:4px">Auto-mitigado ✓</span>`:"";
+    return`<tr ${res.autoMitigated?'style="background:var(--med-bg)"':''}>
+      <td class="rid">${item.id}</td>
+      <td style="max-width:150px"><span style="font-weight:600">${item.name}</span>${autoTag}<div style="font-size:10px;color:var(--muted)">${item._lib}</div></td>
+      <td><span class="badge b-reduzido">${item.cia}</span></td>
+      <td style="text-align:center">${item.prob}</td>
+      <td style="text-align:center">${item.impact}</td>
+      <td style="text-align:center"><div class="score s-${sc(si)}" style="width:28px;height:28px;font-size:12px">${si}</div></td>
+      <td style="text-align:center">${effDisplay}</td>
+      <td style="text-align:center">
+        <div style="display:flex;align-items:center;gap:4px;justify-content:center">
+          <div class="score s-${sc(res.score)}" style="width:28px;height:28px;font-size:12px">${res.score}</div>
+          ${improved?`<span style="color:var(--med);font-size:11px;font-weight:600">▼${si-res.score}</span>`:""}
+        </div>
+      </td>
+      <td>
+        <span class="${bc(lr)}">${lr}</span>
+        ${res.autoMitigated?`<div style="font-size:10px;color:var(--med);font-weight:600;margin-top:3px">→ Mitigado</div>`:""}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function wSave(){
+  const sys=sysById(wizSysId);const aid=nextAnalysisId();
+  const today=new Date().toISOString().slice(0,10);
+  analyses.push({id:aid,system:wizSysId,lib:wizSelectedLibs.join(", "),date:today,cia:{...wizCIA}});
+  const domMap={"OWASP Top 10 Web":"Aplicações e Software","OWASP API Top 10":"Aplicações e Software","CIS Top 18":"Infraestrutura e Rede","ISO 27001 Annex A":"Conformidade e Regulatório","NIST SP 800-53":"Infraestrutura e Rede"};
+  const keyToRiskId={};
+  wizIRItems.forEach(item=>{
+    const res=calcResidual(item);
+    const rid=nextRiskId();
+    keyToRiskId[item._key]=rid;
+    const autoStatus=res.autoMitigated?"Mitigado":"Aberto";
+    risks.push({id:rid,title:item.name,desc:item.desc,
+      domain:domMap[item._lib]||"Aplicações e Software",
+      system:wizSysId,cia:item.cia,libName:item._lib,libRef:item.id,
+      prob:item.prob,impact:item.impact,
+      residualScore:res.score,residualProb:res.prob,avgCtrlEff:res.avgEff,
+      autoMitigated:res.autoMitigated,
+      ctrlEff:item.ctrlEff||{},ctrlFeedback:item.ctrlFeedback||{},
+      treatment:"Mitigar",plan:"",owner:sys?sys.owner:"",
+      status:autoStatus,date:"",controls:item.selectedCtrls,analysis:aid});
+  });
+  wizPendingPlans.forEach(p=>{
+    const rid=keyToRiskId[p.riskKey];
+    mitigationPlans.push({...p,id:nextPlanId(),riskId:rid||"",system:wizSysId,analysis:aid});
+  });
+  wizPendingPlans=[];
+  clearDraft();
+  // Close modal directly — bypass closeWiz() to avoid auto-save triggering
+  document.getElementById("wizModal").classList.remove("open");
+  persistAppData();
+  const planCount=mitigationPlans.filter(p=>p.analysis===aid).length;
+  const mitigCount=risks.filter(r=>r.analysis===aid&&r.autoMitigated).length;
+  let msg=`Análise ${aid} registada com ${wizIRItems.length} risco${wizIRItems.length!==1?"s":""}`;
+  if(mitigCount) msg+=` · ${mitigCount} auto-mitigado${mitigCount!==1?"s":""}`;
+  if(planCount)  msg+=` · ${planCount} plano${planCount!==1?"s":""} de mitigação`;
+  alert(msg+".");
+  renderDash();renderSystems();renderAnalyses();renderTable();renderPlans();
+}
+
+// ── Draft persistence ─────────────────────────────────────────────
+const DRAFT_KEY = "itRiskWizardDraft";
+const APP_KEY   = "itRiskAppData";
+
+// Test if localStorage is available (blocked on file:// in some browsers)
+function lsAvailable(){
+  try { localStorage.setItem("__test__","1"); localStorage.removeItem("__test__"); return true; }
+  catch(e){ return false; }
+}
+const LS_OK = lsAvailable();
+
+function saveDraft(){
+  const draft = {
+    wizSysId, wizStep, wizSelectedLibs,
+    wizExcluded: [...wizExcluded],
+    wizCIA: {...wizCIA},
+    wizIRItems: wizIRItems.map(x=>({...x, selectedCtrls:[...x.selectedCtrls], ctrlEff:{...(x.ctrlEff||{})}, ctrlFeedback:{...(x.ctrlFeedback||{})}})),
+    wizIRIdx, wizCtrlIdx,
+    wizPendingPlans: [...wizPendingPlans],
+    savedAt: new Date().toISOString()
+  };
+  if(LS_OK){
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch(e){}
+  }
+  // Always store in memory as fallback
+  window._wizDraft = draft;
+  const t = new Date().toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"});
+  showDraftStatus("Rascunho guardado às "+t);
+}
+
+function loadDraft(){
+  // Try memory first (same session), then localStorage
+  if(window._wizDraft) return window._wizDraft;
+  if(LS_OK){
+    try { const raw=localStorage.getItem(DRAFT_KEY); return raw ? JSON.parse(raw) : null; } catch(e){}
+  }
+  return null;
+}
+
+function clearDraft(){
+  window._wizDraft = null;
+  if(LS_OK){ try { localStorage.removeItem(DRAFT_KEY); } catch(e){} }
+  showDraftStatus("");
+}
+
+function persistAppData(){
+  if(!LS_OK) return; // silently skip if localStorage unavailable
+  try {
+    localStorage.setItem(APP_KEY, JSON.stringify({systems,risks,analyses,mitigationPlans,customLibs,appUsers,authModeEnabled}));
+  } catch(e){ console.warn("persistAppData failed",e); }
+}
+
+function loadAppData(){
+  if(!LS_OK) return;
+  try {
+    const raw=localStorage.getItem(APP_KEY);
+    if(!raw) return;
+    const d=JSON.parse(raw);
+    if(d.systems   && d.systems.length)   systems=d.systems;
+    if(d.risks     && d.risks.length)     risks=d.risks;
+    if(d.analyses  && d.analyses.length)  analyses=d.analyses;
+    if(d.mitigationPlans && d.mitigationPlans.length) mitigationPlans=d.mitigationPlans;
+    if(d.customLibs && Object.keys(d.customLibs).length) customLibs=d.customLibs;
+    if(d.appUsers && d.appUsers.length) appUsers=d.appUsers;
+    if(typeof d.authModeEnabled!=='undefined') authModeEnabled=d.authModeEnabled;
+  } catch(e){ console.warn("loadAppData failed",e); }
+}
+
+// Export full app state as JSON file (always works, no browser restrictions)
+function exportAppData(){
+  const data = {systems,risks,analyses,mitigationPlans,customLibs,exportedAt:new Date().toISOString()};
+  openJsonModal("Exportar dados — copia o JSON abaixo", JSON.stringify(data,null,2), null);
+}
+
+function importDraftFile(input){ /* not used — kept for compat */ }
+
+function importAppData(file){ /* not used — kept for compat */ }
+
+function showDraftStatus(msg){
+  const el = document.getElementById("wizDraftStatus");
+  if(el){ el.textContent = msg; el.style.opacity = msg ? "1" : "0"; }
+}
+
+function hasDraftForSystem(sysId){
+  const d = loadDraft();
+  return d && d.wizSysId === sysId;
+}
+
+function wizManualSaveDraft(){
+  if(wizStep===3) saveCurrentIR();
+  if(wizStep===5){
+    const item=wizIRItems[wizCtrlIdx];
+    if(item && item.selectedCtrls){
+      item.selectedCtrls.forEach(cid=>{
+        const fb=document.getElementById("fb-"+cid);
+        const ef=document.getElementById("eff-"+cid);
+        if(fb) saveCtrlFb(cid,fb.value);
+        if(ef) saveCtrlEff(cid,ef.value);
+      });
+    }
+  }
+  saveDraft();
+  const draft = window._wizDraft;
+  document.getElementById("wizModal").classList.remove("open");
+  if(draft){
+    openJsonModal(
+      "Rascunho guardado — copia o JSON e guarda num ficheiro .txt",
+      JSON.stringify(draft,null,2),
+      null
+    );
+  }
+}
+
+// ── JSON copy/paste modal ─────────────────────────────────────────
+function openJsonModal(title, jsonStr, onImport){
+  document.getElementById("jsonModalTitle").textContent = title;
+  document.getElementById("jsonModalArea").value = jsonStr || "";
+  document.getElementById("jsonModalImportBtn").style.display = onImport ? "inline-block" : "none";
+  document.getElementById("jsonModalCopyBtn").style.display = jsonStr ? "inline-block" : "none";
+  window._jsonModalCallback = onImport;
+  document.getElementById("jsonModal").classList.add("open");
+}
+function closeJsonModal(){ document.getElementById("jsonModal").classList.remove("open"); }
+function jsonModalCopy(){
+  const ta = document.getElementById("jsonModalArea");
+  ta.select(); ta.setSelectionRange(0, 99999);
+  try { document.execCommand("copy"); showJsonStatus("Copiado!"); }
+  catch(e){ showJsonStatus("Usa Ctrl+A e Ctrl+C para copiar."); }
+}
+function jsonModalImport(){
+  const val = document.getElementById("jsonModalArea").value.trim();
+  if(!val){ alert("Cola o JSON antes de importar."); return; }
+  try {
+    const data = JSON.parse(val);
+    if(window._jsonModalCallback) window._jsonModalCallback(data);
+    closeJsonModal();
+  } catch(e){ alert("JSON inválido. Verifica o texto colado."); }
+}
+function showJsonStatus(msg){
+  const el = document.getElementById("jsonModalStatus");
+  if(el){ el.textContent = msg; setTimeout(()=>el.textContent="", 2000); }
+}
+
+function doImportAppData(data){
+  if(data.systems)       systems=data.systems;
+  if(data.risks)         risks=data.risks;
+  if(data.analyses)      analyses=data.analyses;
+  if(data.mitigationPlans) mitigationPlans=data.mitigationPlans;
+  if(data.customLibs)    customLibs=data.customLibs;
+  if(data.appUsers)      appUsers=data.appUsers;
+  if(typeof data.authModeEnabled!=='undefined') authModeEnabled=data.authModeEnabled;
+  persistAppData();
+  renderDash();renderSystems();renderAnalyses();renderTable();
+  renderLibraries();renderControls();renderMatrix();syncSysFilter();renderPlans();renderUsers();
+  alert("Dados importados com sucesso.");
+}
+
+function doImportDraft(data){
+  if(!data.wizSysId){ alert("Não é um rascunho de análise válido."); return; }
+  window._wizDraft = data;
+  restoreFromDraft(data);
+  document.getElementById("wizModal").classList.add("open");
+}
+
+function restoreFromDraft(draft){
+  wizSysId=draft.wizSysId;
+  wizSelectedLibs=draft.wizSelectedLibs||[];
+  wizExcluded=new Set(draft.wizExcluded||[]);
+  wizCIA=draft.wizCIA||{C:null,I:null,A:null};
+  wizIRItems=(draft.wizIRItems||[]).map(x=>({...x, selectedCtrls:[...(x.selectedCtrls||[])], ctrlEff:{...(x.ctrlEff||{})}, ctrlFeedback:{...(x.ctrlFeedback||{})}}));
+  wizIRIdx=draft.wizIRIdx||0;
+  wizCtrlIdx=draft.wizCtrlIdx||0;
+  wizPendingPlans=draft.wizPendingPlans||[];
+
+  const sys=sysById(wizSysId);
+  document.getElementById("wizTitle").textContent="Análise de Risco — "+(sys?sys.name:"");
+  document.getElementById("wp0sub").textContent=`Sistema: ${sys?sys.name:""} · Confirma ou ajusta o CIA para esta análise.`;
+  buildWizCIAOpts("wC","C",wizCIA.C);
+  buildWizCIAOpts("wI","I",wizCIA.I);
+  buildWizCIAOpts("wA","A",wizCIA.A);
+  buildLibOpts();
+
+  wizGo(draft.wizStep||0);
+  // re-render step-specific UI
+  if(draft.wizStep===3 && wizIRItems.length) renderIRStep();
+  if(draft.wizStep===5 && wizIRItems.length) renderCtrlEffStep();
+
+  const savedAt = draft.savedAt ? new Date(draft.savedAt).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "";
+  showDraftStatus("Rascunho de "+savedAt+" restaurado");
+}
+
+function startWiz(sysId){
+  const draft = hasDraftForSystem(sysId) ? loadDraft() : null;
+  if(draft){
+    const sys=sysById(sysId);
+    const savedAt = draft.savedAt ? new Date(draft.savedAt).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "";
+    const resume = confirm(`Existe um rascunho guardado desta análise (${savedAt}) para o sistema "${sys?sys.name:sysId}".\n\nRetomar a partir do ponto onde ficou?`);
+    document.getElementById("wizModal").classList.add("open");
+    if(resume){ restoreFromDraft(draft); return; }
+    else { clearDraft(); }
+  }
+
+  wizSysId=sysId;wizStep=0;wizSelectedLibs=[];wizExcluded=new Set();
+  wizIRItems=[];wizIRIdx=0;wizCtrlIdx=0;wizPendingPlans=[];
+  const sys=sysById(sysId);
+  document.getElementById("wizTitle").textContent="Análise de Risco — "+(sys?sys.name:"");
+  document.getElementById("wp0sub").textContent=`Sistema: ${sys?sys.name:""} · Confirma ou ajusta o CIA para esta análise.`;
+  buildWizSteps(0);
+  document.querySelectorAll(".wpanel").forEach((p,i)=>p.className="wpanel"+(i===0?" active":""));
+  const defCIA=sys?sys.cia:{C:null,I:null,A:null};
+  wizCIA={...defCIA};
+  buildWizCIAOpts("wC","C",defCIA.C);
+  buildWizCIAOpts("wI","I",defCIA.I);
+  buildWizCIAOpts("wA","A",defCIA.A);
+  buildLibOpts();
+  showDraftStatus("");
+  document.getElementById("wizModal").classList.add("open");
+}
+
+function closeWiz(skipDraft=false){
+  if(!skipDraft && wizStep>0 && (wizIRItems.length>0||wizSelectedLibs.length>0)){
+    if(wizStep===3) saveCurrentIR();
+    saveDraft();
+  }
+  document.getElementById("wizModal").classList.remove("open");
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CUSTOM LIBRARIES
+// ════════════════════════════════════════════════════════════════════
+let customLibs = {}; // keyed by lib name, same structure as LIBS entries
+let allLibs = () => ({...LIBS, ...customLibs});
+let allLibNames = () => [...LIB_NAMES, ...Object.keys(customLibs)];
+
+// Wizard state
+let lw = {step:0, meta:{}, risks:[], editRiskIdx:null};
+
+const LW_STEPS = ["1. Biblioteca","2. Riscos","3. Controlos","4. Revisão"];
+
+function openLibWiz(){
+  lw = {step:0, meta:{name:"",desc:"",framework:"",version:"",targetType:"",author:"",color:randomColor()}, risks:[], editRiskIdx:null};
+  lwGo(0);
+  document.getElementById("lwModal").classList.add("open");
+}
+function closeLibWiz(){document.getElementById("lwModal").classList.remove("open");}
+
+function randomColor(){
+  const cols=["#0369a1","#7c3aed","#065f46","#9a3412","#1e40af","#5b21b6","#166534","#92400e","#1d4ed8","#6d28d9"];
+  return cols[Math.floor(Math.random()*cols.length)];
+}
+
+function lwGo(n){
+  lw.step=n;
+  document.getElementById("lwSteps").innerHTML=LW_STEPS.map((s,i)=>`<div class="wstep ${i<n?"done":i===n?"active":""}">${s}</div>`).join("");
+  document.querySelectorAll(".lwpanel").forEach((p,i)=>p.className="lwpanel"+(i===n?" active":""));
+  if(n===1) renderLwRisks();
+  if(n===2) renderLwControls();
+  if(n===3) renderLwReview();
+}
+
+// ── Step 0: Metadata ──────────────────────────────────────────────
+function lwNextMeta(){
+  const name = document.getElementById("lw-name").value.trim();
+  if(!name){alert("O nome da biblioteca é obrigatório.");return;}
+  lw.meta.name = name;
+  lw.meta.desc = document.getElementById("lw-desc").value.trim();
+  lw.meta.framework = document.getElementById("lw-framework").value.trim();
+  lw.meta.version = document.getElementById("lw-version").value.trim();
+  lw.meta.targetType = document.getElementById("lw-target").value;
+  lw.meta.author = document.getElementById("lw-author").value.trim();
+  lw.meta.color = document.getElementById("lw-color").value;
+  // init risks array if empty
+  if(lw.risks.length===0){
+    const n = parseInt(document.getElementById("lw-nrisks").value)||1;
+    lw.risks = Array.from({length:n},(_,i)=>({id:`R${String(i+1).padStart(2,"0")}`,name:"",desc:"",cia:"CIA",ctrls:[]}));
+  }
+  lwGo(1);
+}
+
+// ── Step 1: Risks ─────────────────────────────────────────────────
+function renderLwRisks(){
+  document.getElementById("lwRisksList").innerHTML = lw.risks.map((r,i)=>`
+    <div class="lw-risk-row" id="lwrisk-${i}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="background:var(--accent);color:#fff;border-radius:var(--r);padding:4px 10px;font-size:12px;font-weight:700;flex-shrink:0">${r.id}</div>
+        <div style="font-weight:600;font-size:13px;flex:1">${r.name||"(sem nome)"}</div>
+        <span class="badge b-reduzido" style="font-size:10px">CIA: ${r.cia}</span>
+        <button class="btn btn-sm btn-accent" onclick="lwEditRisk(${i})">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="lwDelRisk(${i})">✕</button>
+      </div>
+      ${r.desc?`<div style="font-size:12px;color:var(--muted);padding-left:44px">${r.desc}</div>`:""}
+    </div>`).join("<div class='divider' style='margin:8px 0'></div>");
+}
+
+function lwEditRisk(idx){
+  lw.editRiskIdx = idx;
+  const r = lw.risks[idx];
+  document.getElementById("lwr-id").value = r.id;
+  document.getElementById("lwr-name").value = r.name;
+  document.getElementById("lwr-desc").value = r.desc;
+  document.getElementById("lwr-cia").value = r.cia;
+  document.getElementById("lwRiskModal").classList.add("open");
+}
+function closeLwRiskModal(){document.getElementById("lwRiskModal").classList.remove("open");}
+function lwSaveRisk(){
+  const idx = lw.editRiskIdx;
+  const r = lw.risks[idx];
+  r.id = document.getElementById("lwr-id").value.trim()||r.id;
+  r.name = document.getElementById("lwr-name").value.trim();
+  r.desc = document.getElementById("lwr-desc").value.trim();
+  r.cia = document.getElementById("lwr-cia").value;
+  closeLwRiskModal();
+  renderLwRisks();
+}
+function lwDelRisk(idx){
+  if(!confirm("Remover este risco?"))return;
+  lw.risks.splice(idx,1);
+  renderLwRisks();
+}
+function lwAddRisk(){
+  const n = lw.risks.length+1;
+  lw.risks.push({id:`R${String(n).padStart(2,"0")}`,name:"",desc:"",cia:"CIA",ctrls:[]});
+  renderLwRisks();
+  // auto-open edit for new risk
+  lwEditRisk(lw.risks.length-1);
+}
+function lwNextRisks(){
+  const unnamed = lw.risks.filter(r=>!r.name.trim());
+  if(unnamed.length){alert(`${unnamed.length} risco(s) sem nome. Preenche todos os nomes antes de avançar.`);return;}
+  lwGo(2);
+}
+
+// ── Step 2: Controls per risk ────────────────────────────────────
+let lwCtrlRiskIdx = 0;
+function renderLwControls(){
+  lwCtrlRiskIdx = 0;
+  renderLwCtrlStep();
+}
+function renderLwCtrlStep(){
+  const total = lw.risks.length;
+  const r = lw.risks[lwCtrlRiskIdx];
+  document.getElementById("lwCtrlProgress").textContent = `Risco ${lwCtrlRiskIdx+1} de ${total}: ${r.id} — ${r.name}`;
+  document.getElementById("lwCtrlRiskName").textContent = r.name;
+  document.getElementById("lwCtrlRiskDesc").textContent = r.desc||"";
+
+  // render existing controls for this risk
+  renderLwCtrlList();
+
+  // nav
+  document.getElementById("lwCtrlPrev").disabled = lwCtrlRiskIdx===0;
+  document.getElementById("lwCtrlNext").textContent = lwCtrlRiskIdx===total-1 ? "Concluir controlos →" : "Seguinte risco →";
+}
+
+function renderLwCtrlList(){
+  const r = lw.risks[lwCtrlRiskIdx];
+  const listEl = document.getElementById("lwCtrlList");
+  if(!r.ctrls.length){
+    listEl.innerHTML=`<div class="empty" style="padding:16px">Nenhum controlo adicionado. Clica em "+ Adicionar controlo" abaixo.</div>`;
+    return;
+  }
+  listEl.innerHTML = r.ctrls.map((c,ci)=>`
+    <div class="lw-ctrl-row" style="display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span class="rid">${c.id}</span>
+          <span style="font-weight:600;font-size:13px">${c.name}</span>
+          <span class="ct ${ctc(c.type)}">${c.type}</span>
+        </div>
+        ${c.desc?`<div style="font-size:12px;color:var(--muted)">${c.desc}</div>`:""}
+      </div>
+      <button class="btn btn-sm" onclick="lwEditCtrl(${lwCtrlRiskIdx},${ci})">Editar</button>
+      <button class="btn btn-sm btn-danger" onclick="lwDelCtrl(${lwCtrlRiskIdx},${ci})">✕</button>
+    </div>`).join("");
+}
+
+function lwAddCtrl(){
+  lw.editCtrlIdx = null;
+  const r = lw.risks[lwCtrlRiskIdx];
+  const n = r.ctrls.length+1;
+  // pre-fill form
+  document.getElementById("lwc-id").value = `${lw.meta.name.substring(0,3).toUpperCase().replace(/\s/g,"")}-C${String(n).padStart(2,"0")}`;
+  document.getElementById("lwc-name").value="";
+  document.getElementById("lwc-desc").value="";
+  document.getElementById("lwc-type").value="Preventivo";
+  document.getElementById("lwc-ref").value="";
+  document.getElementById("lwCtrlModal").classList.add("open");
+}
+function lwEditCtrl(ridx, cidx){
+  lw.editCtrlRiskIdx = ridx;
+  lw.editCtrlIdx = cidx;
+  const c = lw.risks[ridx].ctrls[cidx];
+  document.getElementById("lwc-id").value=c.id;
+  document.getElementById("lwc-name").value=c.name;
+  document.getElementById("lwc-desc").value=c.desc||"";
+  document.getElementById("lwc-type").value=c.type;
+  document.getElementById("lwc-ref").value=c.ref||"";
+  document.getElementById("lwCtrlModal").classList.add("open");
+}
+function closeLwCtrlModal(){document.getElementById("lwCtrlModal").classList.remove("open");}
+function lwSaveCtrl(){
+  const id = document.getElementById("lwc-id").value.trim();
+  const name = document.getElementById("lwc-name").value.trim();
+  if(!name){alert("O nome do controlo é obrigatório.");return;}
+  const c = {id:id||"C-?",name,desc:document.getElementById("lwc-desc").value.trim(),type:document.getElementById("lwc-type").value,ref:document.getElementById("lwc-ref").value.trim()};
+  const r = lw.risks[lwCtrlRiskIdx];
+  if(lw.editCtrlIdx!=null && lw.editCtrlRiskIdx===lwCtrlRiskIdx){
+    r.ctrls[lw.editCtrlIdx]=c;
+  } else {
+    r.ctrls.push(c);
+  }
+  lw.editCtrlIdx=null;
+  closeLwCtrlModal();
+  renderLwCtrlList();
+}
+function lwDelCtrl(ridx,cidx){
+  if(!confirm("Remover este controlo?"))return;
+  lw.risks[ridx].ctrls.splice(cidx,1);
+  renderLwCtrlList();
+}
+function lwCtrlPrev(){
+  if(lwCtrlRiskIdx>0){lwCtrlRiskIdx--;renderLwCtrlStep();}
+  else lwGo(1);
+}
+function lwCtrlNext(){
+  if(lwCtrlRiskIdx<lw.risks.length-1){lwCtrlRiskIdx++;renderLwCtrlStep();}
+  else lwGo(3);
+}
+
+// ── Step 3: Review ────────────────────────────────────────────────
+function renderLwReview(){
+  const m = lw.meta;
+  document.getElementById("lwReview").innerHTML=`
+    <div class="card0" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="width:6px;height:40px;background:${m.color};border-radius:3px;flex-shrink:0"></div>
+        <div>
+          <div style="font-weight:700;font-size:15px">${m.name}</div>
+          ${m.desc?`<div style="font-size:13px;color:var(--muted)">${m.desc}</div>`:""}
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px">
+        ${m.framework?`<span class="tag">Framework: ${m.framework}</span>`:""}
+        ${m.version?`<span class="tag">v${m.version}</span>`:""}
+        ${m.targetType?`<span class="tag">Alvo: ${m.targetType}</span>`:""}
+        ${m.author?`<span class="tag">Autor: ${m.author}</span>`:""}
+        <span class="tag">${lw.risks.length} risco${lw.risks.length!==1?"s":""}</span>
+        <span class="tag">${lw.risks.reduce((a,r)=>a+r.ctrls.length,0)} controlo${lw.risks.reduce((a,r)=>a+r.ctrls.length,0)!==1?"s":""}</span>
+      </div>
+    </div>
+    ${lw.risks.map(r=>`
+    <div class="lib-risk-card">
+      <div class="lib-risk-hdr">
+        <div>
+          <div class="lib-risk-id">${r.id}</div>
+          <div class="lib-risk-name">${r.name}</div>
+        </div>
+        <span class="badge b-reduzido">CIA: ${r.cia}</span>
+      </div>
+      ${r.desc?`<div class="lib-risk-desc">${r.desc}</div>`:""}
+      <div class="lib-ctrl-chips">
+        ${r.ctrls.length?r.ctrls.map(c=>`<span class="chip"><strong>${c.id}</strong> — ${c.name} <span class="ct ${ctc(c.type)}" style="font-size:10px">${c.type}</span></span>`).join(""):`<span style="font-size:12px;color:var(--muted)">Sem controlos definidos</span>`}
+      </div>
+    </div>`).join("")}`;
+}
+
+function lwSaveLib(){
+  const m = lw.meta;
+  if(allLibNames().includes(m.name)){alert(`Já existe uma biblioteca com o nome "${m.name}". Escolhe um nome diferente.`);return;}
+  // Build lib object — convert inline controls to ctrls array of IDs (we store full ctrl objects separately)
+  const libCtrlMap = {}; // id -> ctrl obj
+  lw.risks.forEach(r=>r.ctrls.forEach(c=>libCtrlMap[c.id]=c));
+
+  customLibs[m.name] = {
+    id: m.name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"").slice(0,20),
+    color: m.color,
+    desc: m.desc || `Biblioteca personalizada (${m.framework||"custom"})`,
+    meta: {...m},
+    customCtrls: libCtrlMap,
+    risks: lw.risks.map(r=>({
+      id: r.id,
+      name: r.name,
+      desc: r.desc,
+      cia: r.cia,
+      ctrls: r.ctrls.map(c=>c.id), // store IDs
+    }))
+  };
+  activeLib = m.name;
+  closeLibWiz();
+  renderLibraries();
+  // also rebuild lib selector in risk modal
+  persistAppData();alert(`Biblioteca "${m.name}" criada com ${lw.risks.length} riscos.`);
+}
+
+// ── Updated render to support custom lib controls ─────────────────
+function getCtrlForLib(libName, cid){
+  const lib = allLibs()[libName];
+  if(lib && lib.customCtrls && lib.customCtrls[cid]) return lib.customCtrls[cid];
+  return ctrl(cid);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// LIBRARIES (updated to support custom)
+// ════════════════════════════════════════════════════════════════════
+let activeLib = LIB_NAMES[0];
+function renderLibraries(){
+  const tabs=document.getElementById("libTabs");
+  const names = allLibNames();
+  tabs.innerHTML=names.map(n=>`<div class="lib-tab ${n===activeLib?"active":""}" onclick="switchLib('${n}')">${n}</div>`).join("");
+  if(!names.includes(activeLib)) activeLib=names[0];
+  renderLibContent();
+}
+function switchLib(name){activeLib=name;renderLibraries();}
+function renderLibContent(){
+  const lib=allLibs()[activeLib];
+  const isCustom = !!customLibs[activeLib];
+  const totalCtrls = lib.risks.reduce((a,r)=>a+(r.ctrls||[]).length,0);
+  document.getElementById("libContent").innerHTML=`
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:6px;height:40px;background:${lib.color};border-radius:3px;flex-shrink:0"></div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="ctitle" style="margin-bottom:0">${activeLib}</div>
+            ${isCustom?`<span class="badge" style="background:#fef3c7;color:#92400e;font-size:10px">Personalizada</span>`:""}
+          </div>
+          <div style="font-size:13px;color:var(--muted)">${lib.desc}</div>
+          ${isCustom&&lib.meta?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+            ${lib.meta.framework?`<span class="tag">Framework: ${lib.meta.framework}</span>`:""}
+            ${lib.meta.version?`<span class="tag">v${lib.meta.version}</span>`:""}
+            ${lib.meta.targetType?`<span class="tag">Alvo: ${lib.meta.targetType}</span>`:""}
+            ${lib.meta.author?`<span class="tag">Autor: ${lib.meta.author}</span>`:""}
+          </div>`:""}
+        </div>
+        <div class="spacer"></div>
+        <div style="text-align:right">
+          <span class="badge" style="background:${lib.color}18;color:${lib.color};font-size:12px;padding:4px 12px;display:block;margin-bottom:4px">${lib.risks.length} ameaças</span>
+          <span style="font-size:11px;color:var(--muted)">${totalCtrls} controlo${totalCtrls!==1?"s":""}</span>
+        </div>
+        ${isCustom?`<button class="btn btn-sm btn-danger" onclick="delCustomLib('${activeLib}')">Remover biblioteca</button>`:""}
+      </div>
+    </div>
+    ${lib.risks.map((r,i)=>`
+    <div class="lib-risk-card">
+      <div class="lib-risk-hdr">
+        <div>
+          <div class="lib-risk-id">${lib.id.toUpperCase()} · ${r.id}</div>
+          <div class="lib-risk-name">${r.name}</div>
+        </div>
+        <span class="badge b-reduzido" style="white-space:nowrap">CIA: ${r.cia}</span>
+      </div>
+      <div class="lib-risk-desc">${r.desc||""}</div>
+      <div class="lib-ctrl-chips">
+        ${(r.ctrls||[]).map(cid=>{const c=getCtrlForLib(activeLib,cid);return c?`<span class="chip"><strong>${c.id}</strong> — ${c.name}</span>`:""}).join("")||`<span style="font-size:12px;color:var(--muted)">Sem controlos</span>`}
+      </div>
+    </div>`).join("")}`;
+}
+
+function delCustomLib(name){
+  if(!confirm(`Remover a biblioteca "${name}"? Esta ação não pode ser desfeita.`))return;
+  delete customLibs[name];
+  activeLib = LIB_NAMES[0];
+  renderLibraries();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// RESIDUAL MATRIX (wizard step 7)
+// ════════════════════════════════════════════════════════════════════
+function renderResidualMatrix(){
+  const g=document.getElementById("wRxGrid"); let h="";
+  for(let i=5;i>=1;i--) for(let p=1;p<=5;p++){
+    const s=p*i;
+    const items=wizIRItems.filter(x=>{const r=calcResidual(x);return r.prob===p&&r.impact===i;});
+    let cls="m-low";if(s>=17)cls="m-crit";else if(s>=10)cls="m-high";else if(s>=4)cls="m-med";
+    h+=`<div class="mcell ${cls}" style="height:52px;font-size:11px;flex-direction:column;gap:1px" onclick="showRxDetail(${p},${i},this)">
+      ${items.length?`<span style="font-weight:700;font-size:14px">${items.length}</span><span style="font-size:9px;opacity:.85;text-align:center;line-height:1.2">${items.slice(0,3).map(x=>x.id).join(" ")}${items.length>3?"…":""}</span>`:""}
+    </div>`;
+  }
+  g.innerHTML=h;
+  document.getElementById("wRxDetail").innerHTML="<p style='font-size:13px;color:var(--muted)'>Clica numa célula.</p>";
+  document.getElementById("wRxDetailTitle").textContent="Clica numa célula";
+}
+function showRxDetail(p,i,el){
+  document.querySelectorAll("#wRxGrid .mcell").forEach(c=>c.classList.remove("sel")); el.classList.add("sel");
+  const s=p*i;
+  const items=wizIRItems.filter(x=>{const r=calcResidual(x);return r.prob===p&&r.impact===i;});
+  document.getElementById("wRxDetailTitle").textContent=`P=${p} × I=${i} — Score residual ${s} (${lvl(s)})`;
+  document.getElementById("wRxDetail").innerHTML=items.length
+    ?items.map(x=>{
+        const si=x.prob*x.impact; const res=calcResidual(x);
+        const improved=res.score<si;
+        return`<div class="detail-risk" style="margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="rid">${x.id}</span><span style="font-weight:600;font-size:13px">${x.name}</span>
+            <span class="b-lib" style="font-size:10px">${x._lib}</span>
+          </div>
+          <div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--muted)">Inerente:</span>
+            <div class="score s-${sc(si)}" style="width:26px;height:26px;font-size:11px">${si}</div>
+            ${improved?`<span style="color:var(--muted)">→</span>
+            <span style="font-size:11px;color:var(--muted)">Residual:</span>
+            <div class="score s-${sc(res.score)}" style="width:26px;height:26px;font-size:11px">${res.score}</div>
+            <span style="color:var(--med);font-size:11px;font-weight:600">▼${si-res.score}</span>`:""}
+          </div>
+          <button class="btn btn-sm btn-green" style="margin-top:8px" onclick="openPlanFromRisk('${x._key}')">+ Criar plano de mitigação</button>
+        </div>`;
+      }).join("")
+    :"<p style='color:var(--muted);font-size:13px'>Nenhum risco nesta posição.</p>";
+}
+
+// Plans in wizard
+let wizPendingPlans = []; // plans staged before analysis is saved
+
+function renderWizPlans(){
+  const el=document.getElementById("wPlansList");
+  if(!wizPendingPlans.length){
+    el.innerHTML=`<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed var(--border);border-radius:var(--r)">Sem planos criados. Clica numa célula da matriz ou em "+ Novo plano de mitigação".</div>`;
+    return;
+  }
+  el.innerHTML=wizPendingPlans.map((p,i)=>`
+    <div style="border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px;margin-bottom:4px">${p.riskName}</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Controlo: <strong>${p.ctrlId}</strong> — ${p.ctrlName}</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px">
+            <span style="color:var(--muted)">Responsável: <strong>${p.owner||"—"}</strong></span>
+            <span style="color:var(--muted)">Data limite: <strong>${p.dueDate||"—"}</strong></span>
+            <span class="${bc(p.status==="Concluído"?"Mitigado":p.status==="Cancelado"?"Aceite":"Aberto")}">${p.status}</span>
+          </div>
+          ${p.description?`<div style="font-size:12px;color:var(--muted);margin-top:6px">${p.description}</div>`:""}
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="removeWizPlan(${i})">✕</button>
+      </div>
+    </div>`).join("");
+}
+
+function openPlanFromWiz(){
+  // open plan modal with no pre-fill
+  openPlanAdd(null, null, true);
+}
+function openPlanFromRisk(key){
+  const item=wizIRItems.find(x=>x._key===key);
+  openPlanAdd(item, null, true);
+}
+function removeWizPlan(idx){
+  wizPendingPlans.splice(idx,1);
+  renderWizPlans();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// MITIGATION PLANS
+// ════════════════════════════════════════════════════════════════════
+let mitigationPlans = [];
+let editPlanId = null;
+let planFromWizard = false; // flag: if true, save to wizPendingPlans instead of mitigationPlans
+
+const PLAN_STATUS = ["Aberto","Em progresso","Concluído","Cancelado"];
+const PLAN_STATUS_COLORS = {Aberto:"b-aberto","Em progresso":"b-alto",Concluído:"b-mitigado",Cancelado:"b-aceite"};
+
+function nextPlanId(){
+  const nums=mitigationPlans.map(p=>parseInt(p.id.replace("PM-",""))||0);
+  return"PM-"+String(Math.max(0,...nums)+1).padStart(3,"0");
+}
+
+function renderPlans(){
+  // sync system filter
+  const pSys=document.getElementById("planSystem");
+  if(pSys){const cur=pSys.value;pSys.innerHTML="<option value=''>Todos os sistemas</option>"+systems.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");pSys.value=cur;}
+
+  const q=(document.getElementById("planSearch")?.value||"").toLowerCase();
+  const st=document.getElementById("planStatus")?.value||"";
+  const sy=document.getElementById("planSystem")?.value||"";
+  const f=mitigationPlans.filter(p=>
+    (!q||p.riskName.toLowerCase().includes(q)||p.ctrlId.toLowerCase().includes(q)||(p.owner||"").toLowerCase().includes(q))&&
+    (!st||p.status===st)&&(!sy||p.system===sy));
+
+  // stats
+  const stats={Aberto:0,"Em progresso":0,Concluído:0,Cancelado:0};
+  mitigationPlans.forEach(p=>stats[p.status]=(stats[p.status]||0)+1);
+  document.getElementById("planStats").innerHTML=Object.entries(stats).map(([k,v])=>
+    `<div class="metric" style="padding:10px 14px;min-width:110px"><div class="mlabel" style="font-size:10px">${k}</div><div class="mvalue" style="font-size:20px">${v}</div></div>`
+  ).join("");
+
+  const tb=document.getElementById("planTable"),em=document.getElementById("planEmpty");
+  if(!f.length){tb.innerHTML="";em.style.display="block";return;}
+  em.style.display="none";
+
+  const now=new Date();
+  tb.innerHTML=f.map(p=>{
+    const sys=sysById(p.system);
+    const overdue=p.dueDate&&p.status!=="Concluído"&&p.status!=="Cancelado"&&new Date(p.dueDate)<now;
+    const lastUpd=p.updates?.length?p.updates[p.updates.length-1]:{date:"—",text:"—"};
+    return`<tr>
+      <td class="rid">${p.id}</td>
+      <td style="max-width:160px"><div style="font-weight:600;font-size:13px">${p.riskName}</div><div style="font-size:11px;color:var(--muted)">${p.ctrlId} — ${p.ctrlName}</div></td>
+      <td style="font-size:12px;color:var(--muted)">${p.ctrlId}</td>
+      <td style="font-size:12px">${sys?sys.name:"—"}</td>
+      <td style="font-size:12px">${p.owner||"—"}</td>
+      <td style="font-size:12px;${overdue?"color:var(--crit);font-weight:600":""}">${p.dueDate||"—"}${overdue?" ⚠":""}</td>
+      <td><span class="badge ${PLAN_STATUS_COLORS[p.status]||"b-reduzido"}">${p.status}</span></td>
+      <td style="max-width:180px">
+        <div style="font-size:11px;color:var(--muted)">${lastUpd.date}</div>
+        <div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">${lastUpd.text!=="—"?lastUpd.text:"—"}</div>
+      </td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="openPlanEdit('${p.id}')">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="deletePlan('${p.id}')">✕</button>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function openPlanAdd(wizItem, ctrlId, fromWizard=false){
+  planFromWizard=fromWizard;
+  editPlanId=null;
+  _editUpdates=[];
+  setCtrlMode('list');
+  document.getElementById("planMTitle").textContent="Novo plano de mitigação";
+
+  // Populate risk select
+  buildPlanRiskSelect(wizItem?wizItem._key:null, fromWizard);
+  buildPlanCtrlSelect(wizItem, ctrlId);
+
+  // Clear fields
+  document.getElementById("pm-owner").value="";
+  document.getElementById("pm-due").value="";
+  document.getElementById("pm-desc").value="";
+  document.getElementById("pm-status").value="Aberto";
+  document.getElementById("pmUpdates").innerHTML="<div style='font-size:13px;color:var(--muted);padding:8px 0'>Sem atualizações ainda.</div>";
+  document.getElementById("pm-update-text").value="";
+  document.getElementById("pm-ctrl-free-id").value="";
+  document.getElementById("pm-ctrl-free-name").value="";
+
+  // system
+  const sysSel=document.getElementById("pm-system");
+  sysSel.innerHTML="<option value=''>— Sem sistema —</option>"+systems.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  if(wizItem) document.getElementById("pm-system").value=wizSysId||"";
+
+  document.getElementById("planModal").classList.add("open");
+}
+
+function buildPlanRiskSelect(selectedKey, fromWizard){
+  const sel=document.getElementById("pm-risk");
+  if(fromWizard && wizIRItems.length){
+    sel.innerHTML="<option value=''>— Seleciona um risco —</option>"+
+      wizIRItems.map(x=>`<option value="${x._key}" ${x._key===selectedKey?"selected":""}>${x.id} — ${x.name} (${x._lib})</option>`).join("");
+    sel.onchange=()=>buildPlanCtrlSelectFromKey(sel.value);
+  } else {
+    sel.innerHTML="<option value=''>— Seleciona um risco —</option>"+
+      risks.map(r=>`<option value="${r.id}">${r.id} — ${r.title}</option>`).join("");
+    sel.onchange=()=>{};
+  }
+}
+
+function buildPlanCtrlSelect(wizItem, preselected){
+  const sel=document.getElementById("pm-ctrl");
+  const ctrls=wizItem
+    ?wizItem.selectedCtrls.map(cid=>{const c=getCtrlForLib(wizItem._lib,cid)||{id:cid,name:cid};return{id:c.id,name:c.name};})
+    :CTRLS.map(c=>({id:c.id,name:c.name}));
+  sel.innerHTML="<option value=''>— Seleciona um controlo —</option>"+
+    ctrls.map(c=>`<option value="${c.id}|${c.name}" ${preselected===c.id?"selected":""}>${c.id} — ${c.name}</option>`).join("");
+}
+
+function buildPlanCtrlSelectFromKey(key){
+  const item=wizIRItems.find(x=>x._key===key);
+  if(item) buildPlanCtrlSelect(item, null);
+  else buildPlanCtrlSelect(null, null);
+}
+
+function openPlanEdit(id){
+  planFromWizard=false;
+  const p=mitigationPlans.find(x=>x.id===id); if(!p)return;
+  editPlanId=id;
+  _editUpdates=[...(p.updates||[])];
+  document.getElementById("planMTitle").textContent="Editar plano — "+id;
+  buildPlanRiskSelect(p.riskKey||p.riskId, false);
+  document.getElementById("pm-risk").value=p.riskKey||p.riskId||"";
+
+  // detect if ctrl was free (not in CTRLS list)
+  const isLib = CTRLS.some(c=>c.id===p.ctrlId);
+  if(!isLib){
+    setCtrlMode('free');
+    document.getElementById("pm-ctrl-free-id").value=p.ctrlId||"";
+    document.getElementById("pm-ctrl-free-name").value=p.ctrlName||"";
+  } else {
+    setCtrlMode('list');
+    document.getElementById("pm-ctrl-free-id").value="";
+    document.getElementById("pm-ctrl-free-name").value="";
+    const sel=document.getElementById("pm-ctrl");
+    sel.innerHTML=`<option value="${p.ctrlId}|${p.ctrlName}" selected>${p.ctrlId} — ${p.ctrlName}</option>`+
+      CTRLS.filter(c=>c.id!==p.ctrlId).map(c=>`<option value="${c.id}|${c.name}">${c.id} — ${c.name}</option>`).join("");
+  }
+
+  const sysSel=document.getElementById("pm-system");
+  sysSel.innerHTML="<option value=''>— Sem sistema —</option>"+systems.map(s=>`<option value="${s.id}" ${s.id===p.system?"selected":""}>${s.name}</option>`).join("");
+  document.getElementById("pm-owner").value=p.owner||"";
+  document.getElementById("pm-due").value=p.dueDate||"";
+  document.getElementById("pm-desc").value=p.description||"";
+  document.getElementById("pm-status").value=p.status||"Aberto";
+  renderPlanUpdates(_editUpdates);
+  document.getElementById("pm-update-text").value="";
+  document.getElementById("planModal").classList.add("open");
+}
+
+function renderPlanUpdates(updates){
+  document.getElementById("pmUpdates").innerHTML=updates.length
+    ?updates.map((u,i)=>`<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1"><div style="font-size:11px;color:var(--muted);margin-bottom:2px">${u.date} · ${u.author||"—"}</div><div style="font-size:13px">${u.text}</div></div>
+        <button class="btn btn-sm btn-danger" onclick="removeUpdate(${i})">✕</button>
+      </div>`).join("")
+    :`<div style="font-size:13px;color:var(--muted);padding:8px 0">Sem atualizações ainda.</div>`;
+}
+
+let _editUpdates=[];
+function removeUpdate(idx){_editUpdates.splice(idx,1);renderPlanUpdates(_editUpdates);}
+function addUpdate(){
+  const txt=document.getElementById("pm-update-text").value.trim();
+  if(!txt){alert("Escreve uma atualização.");return;}
+  _editUpdates.push({date:new Date().toISOString().slice(0,10),author:"",text:txt});
+  renderPlanUpdates(_editUpdates);
+  document.getElementById("pm-update-text").value="";
+}
+
+function closePlanModal(){
+  document.getElementById("planModal").classList.remove("open");
+  _editUpdates=[];
+  setCtrlMode('list');
+  document.getElementById("pm-ctrl-free-id").value="";
+  document.getElementById("pm-ctrl-free-name").value="";
+}
+
+function savePlan(){
+  const riskVal=document.getElementById("pm-risk").value;
+  if(!riskVal){alert("Seleciona um risco.");return;}
+
+  let ctrlId="", ctrlName="";
+  if(ctrlMode==='free'){
+    ctrlId=document.getElementById("pm-ctrl-free-id").value.trim()||"LIVRE";
+    ctrlName=document.getElementById("pm-ctrl-free-name").value.trim();
+    if(!ctrlName){alert("Indica o nome do controlo livre.");return;}
+  } else {
+    const ctrlVal=document.getElementById("pm-ctrl").value;
+    if(!ctrlVal){alert("Seleciona um controlo.");return;}
+    [ctrlId,ctrlName]=ctrlVal.split("|");
+  }
+
+  let riskName="", riskId="", riskKey="";
+  if(planFromWizard){
+    const item=wizIRItems.find(x=>x._key===riskVal);
+    riskName=item?`${item.id} — ${item.name}`:riskVal;
+    riskKey=riskVal;
+  } else {
+    const r=risks.find(x=>x.id===riskVal);
+    riskName=r?r.title:riskVal; riskId=riskVal;
+  }
+
+  const plan={
+    id:editPlanId||nextPlanId(),
+    riskKey, riskId, riskName,
+    ctrlId, ctrlName,
+    system:document.getElementById("pm-system").value,
+    owner:document.getElementById("pm-owner").value.trim(),
+    dueDate:document.getElementById("pm-due").value,
+    description:document.getElementById("pm-desc").value.trim(),
+    status:document.getElementById("pm-status").value,
+    updates:[..._editUpdates],
+    createdAt:new Date().toISOString().slice(0,10)
+  };
+
+  if(planFromWizard){
+    wizPendingPlans.push(plan);
+    closePlanModal();
+    renderWizPlans();
+    return;
+  }
+  if(editPlanId){mitigationPlans[mitigationPlans.findIndex(x=>x.id===editPlanId)]=plan;}
+  else{mitigationPlans.push(plan);}
+  closePlanModal();
+  persistAppData();renderPlans();
+}
+
+function deletePlan(id){
+  if(!confirm("Remover este plano de mitigação?"))return;
+  mitigationPlans=mitigationPlans.filter(p=>p.id!==id);
+  persistAppData();renderPlans();
+}
+
+// Control mode toggle in plan modal
+let ctrlMode = 'list';
+function setCtrlMode(mode){
+  ctrlMode=mode;
+  document.getElementById("pm-ctrl-list-wrap").style.display=mode==='list'?'block':'none';
+  document.getElementById("pm-ctrl-free-wrap").style.display=mode==='free'?'flex':'none';
+  document.getElementById("pm-ctrl-mode-list").className='btn btn-sm '+(mode==='list'?'btn-accent':'');
+  document.getElementById("pm-ctrl-mode-free").className='btn btn-sm '+(mode==='free'?'btn-accent':'');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// USER MANAGEMENT
+// ════════════════════════════════════════════════════════════════════
+const ROLES = {
+  admin:        {label:"Administrador",   color:"b-muitoalto"},
+  risk_manager: {label:"Gestor de Risco", color:"b-alto"},
+  readonly:     {label:"Apenas Leitura",  color:"b-reduzido"},
+};
+
+// Tabs visible per role (admin sees all)
+const ROLE_TABS = {
+  admin:        ["dashboard","systems","analyses","register","libraries","controls","matrix","plans","users","help"],
+  risk_manager: ["dashboard","systems","analyses","register","matrix","plans","help"],
+  readonly:     ["dashboard","register","matrix","help"],
+};
+
+// Permissions reference table
+const PERM_ROWS = [
+  ["Dashboard — visualizar",            true,  true,  true ],
+  ["Sistemas — visualizar",             true,  true,  true ],
+  ["Sistemas — criar/editar/remover",   true,  true,  false],
+  ["Análises de Risco — realizar",      true,  true,  false],
+  ["Análises de Risco — visualizar",    true,  true,  true ],
+  ["Registo de Riscos — editar",        true,  true,  false],
+  ["Planos de Mitigação — gerir",       true,  true,  false],
+  ["Bibliotecas — visualizar",          true,  false, false],
+  ["Bibliotecas — criar/editar",        true,  false, false],
+  ["Controlos — visualizar",            true,  false, false],
+  ["Matriz — visualizar",               true,  true,  true ],
+  ["Utilizadores — gerir",              true,  false, false],
+];
+
+let appUsers = [
+  {id:"U-001",name:"Administrador",username:"admin",email:"",role:"admin",status:"active",pwd:"",notes:"Utilizador administrador padrão",createdAt:new Date().toISOString().slice(0,10),lastAccess:""}
+];
+let currentUser = null; // {id, name, username, role, ...}
+let authModeEnabled = false;
+let editUserId = null;
+let pendingSwitchUserId = null;
+
+function nextUserId(){
+  const nums=appUsers.map(u=>parseInt(u.id.replace("U-",""))||0);
+  return"U-"+String(Math.max(0,...nums)+1).padStart(3,"0");
+}
+
+// ── Render users tab ──────────────────────────────────────────────
+function renderUsers(){
+  const tb=document.getElementById("usersTable");
+  const em=document.getElementById("usersEmpty");
+  if(!appUsers.length){tb.innerHTML="";em.style.display="block";return;}
+  em.style.display="none";
+  tb.innerHTML=appUsers.map(u=>{
+    const role=ROLES[u.role]||ROLES.readonly;
+    const isCurrent=currentUser&&currentUser.id===u.id;
+    return`<tr ${isCurrent?'style="background:var(--accent-light)"':''}>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${u.name.charAt(0).toUpperCase()}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px">${u.name}${isCurrent?' <span style="font-size:10px;color:var(--accent);font-weight:600">(sessão atual)</span>':''}</div>
+            <div style="font-size:11px;color:var(--muted)">${u.email||"—"}</div>
+          </div>
+        </div>
+      </td>
+      <td style="font-family:monospace;font-size:12px">${u.username}</td>
+      <td><span class="badge ${role.color}">${role.label}</span></td>
+      <td><span class="badge ${u.status==="active"?"b-mitigado":"b-aberto"}">${u.status==="active"?"Ativo":"Inativo"}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${u.createdAt||"—"}</td>
+      <td style="font-size:12px;color:var(--muted)">${u.lastAccess||"—"}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="openUserEdit('${u.id}')">Editar</button>
+        ${!isCurrent?`<button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}')">✕</button>`:""}
+      </td>
+    </tr>`;
+  }).join("");
+
+  // permissions table
+  document.getElementById("permTable").innerHTML=PERM_ROWS.map(([label,admin,rm,ro])=>`
+    <tr>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:13px">${label}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center">${admin?"<span style='color:var(--med);font-size:15px'>✓</span>":"<span style='color:var(--border)'>—</span>"}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center">${rm?"<span style='color:var(--med);font-size:15px'>✓</span>":"<span style='color:var(--border)'>—</span>"}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center">${ro?"<span style='color:var(--med);font-size:15px'>✓</span>":"<span style='color:var(--border)'>—</span>"}</td>
+    </tr>`).join("");
+
+  // sync auth toggle
+  const chk=document.getElementById("authModeChk");
+  const track=document.getElementById("authModeTrack");
+  const thumb=document.getElementById("authModeThumb");
+  const lbl=document.getElementById("authModeLabel");
+  const note=document.getElementById("authModeNote");
+  if(chk){
+    chk.checked=authModeEnabled;
+    track.style.background=authModeEnabled?"var(--med)":"var(--border)";
+    thumb.style.left=authModeEnabled?"23px":"3px";
+    lbl.textContent=authModeEnabled?"Ativada":"Desativada";
+    lbl.style.color=authModeEnabled?"var(--med)":"var(--muted)";
+    note.style.display=authModeEnabled?"block":"none";
+  }
+}
+
+function toggleAuthMode(){
+  authModeEnabled=!authModeEnabled;
+  renderUsers();
+  persistAppData();
+}
+
+// ── Nav visibility ────────────────────────────────────────────────
+function applyNavAccess(){
+  const allowedTabs=currentUser?ROLE_TABS[currentUser.role]||ROLE_TABS.readonly:ROLE_TABS.readonly;
+  document.querySelectorAll("#mainNav button[data-tab]").forEach(btn=>{
+    const tab=btn.getAttribute("data-tab");
+    btn.style.display=allowedTabs.includes(tab)?"":"none";
+  });
+  // If current active tab is now hidden, redirect to dashboard
+  const activeBtn=document.querySelector("#mainNav button.active");
+  if(activeBtn&&activeBtn.style.display==="none"){
+    const dash=document.querySelector("#mainNav button[data-tab='dashboard']");
+    if(dash){gotoTab("dashboard",dash);}
+  }
+}
+
+function updateHeaderUser(){
+  if(!currentUser){
+    document.getElementById("headerUserAvatar").textContent="?";
+    document.getElementById("headerUserName").textContent="Sem sessão";
+    document.getElementById("headerUserRole").textContent="Clica para selecionar";
+    return;
+  }
+  const role=ROLES[currentUser.role]||ROLES.readonly;
+  document.getElementById("headerUserAvatar").textContent=currentUser.name.charAt(0).toUpperCase();
+  document.getElementById("headerUserName").textContent=currentUser.name;
+  document.getElementById("headerUserRole").textContent=role.label;
+}
+
+// ── User modal (add/edit) ─────────────────────────────────────────
+function openUserAdd(){
+  editUserId=null;
+  document.getElementById("userMTitle").textContent="Novo utilizador";
+  ["uf-name","uf-username","uf-email","uf-pwd","uf-pwd2","uf-notes"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("uf-role").value="risk_manager";
+  document.getElementById("uf-status").value="active";
+  document.getElementById("userModal").classList.add("open");
+}
+
+function openUserEdit(id){
+  const u=appUsers.find(x=>x.id===id);if(!u)return;
+  editUserId=id;
+  document.getElementById("userMTitle").textContent="Editar utilizador — "+u.name;
+  document.getElementById("uf-name").value=u.name;
+  document.getElementById("uf-username").value=u.username;
+  document.getElementById("uf-email").value=u.email||"";
+  document.getElementById("uf-role").value=u.role;
+  document.getElementById("uf-status").value=u.status;
+  document.getElementById("uf-pwd").value="";
+  document.getElementById("uf-pwd2").value="";
+  document.getElementById("uf-notes").value=u.notes||"";
+  document.getElementById("userModal").classList.add("open");
+}
+
+function closeUserModal(){document.getElementById("userModal").classList.remove("open");}
+
+function saveUser(){
+  const name=document.getElementById("uf-name").value.trim();
+  const username=document.getElementById("uf-username").value.trim().toLowerCase();
+  if(!name){alert("O nome é obrigatório.");return;}
+  if(!username){alert("O username é obrigatório.");return;}
+  // Check username uniqueness
+  const dup=appUsers.find(u=>u.username===username&&u.id!==editUserId);
+  if(dup){alert(`O username "${username}" já existe.`);return;}
+  const pwd1=document.getElementById("uf-pwd").value;
+  const pwd2=document.getElementById("uf-pwd2").value;
+  if(pwd1&&pwd1!==pwd2){alert("As passwords não coincidem.");return;}
+
+  if(editUserId){
+    const u=appUsers.find(x=>x.id===editUserId);
+    u.name=name; u.username=username;
+    u.email=document.getElementById("uf-email").value.trim();
+    u.role=document.getElementById("uf-role").value;
+    u.status=document.getElementById("uf-status").value;
+    u.notes=document.getElementById("uf-notes").value.trim();
+    if(pwd1) u.pwd=simpleHash(pwd1);
+    // Update currentUser if editing self
+    if(currentUser&&currentUser.id===editUserId){
+      currentUser={...u};
+      updateHeaderUser();
+      applyNavAccess();
+    }
+  } else {
+    appUsers.push({
+      id:nextUserId(), name, username,
+      email:document.getElementById("uf-email").value.trim(),
+      role:document.getElementById("uf-role").value,
+      status:document.getElementById("uf-status").value,
+      pwd:pwd1?simpleHash(pwd1):"",
+      notes:document.getElementById("uf-notes").value.trim(),
+      createdAt:new Date().toISOString().slice(0,10),
+      lastAccess:""
+    });
+  }
+  closeUserModal();
+  persistAppData();
+  renderUsers();
+}
+
+function deleteUser(id){
+  if(currentUser&&currentUser.id===id){alert("Não podes remover o utilizador com sessão ativa.");return;}
+  if(!confirm("Remover este utilizador?"))return;
+  appUsers=appUsers.filter(u=>u.id!==id);
+  persistAppData();
+  renderUsers();
+}
+
+// ── User switch modal ─────────────────────────────────────────────
+function openUserSwitch(){
+  const active=appUsers.filter(u=>u.status==="active");
+  pendingSwitchUserId=null;
+  document.getElementById("userSwitchPwdWrap").style.display="none";
+  document.getElementById("userSwitchPwd").value="";
+  document.getElementById("userSwitchPwdErr").style.display="none";
+  document.getElementById("userSwitchBtn").style.display="none";
+
+  document.getElementById("userSwitchList").innerHTML=active.length
+    ?active.map(u=>{
+        const role=ROLES[u.role]||ROLES.readonly;
+        const isCurrent=currentUser&&currentUser.id===u.id;
+        return`<div onclick="selectSwitchUser('${u.id}')" id="switchOpt-${u.id}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:2px solid ${isCurrent?"var(--accent)":"var(--border)"};border-radius:var(--r);cursor:pointer;transition:all .15s;background:${isCurrent?"var(--accent-light)":"var(--surface)"}">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${u.name.charAt(0).toUpperCase()}</div>
+          <div style="flex:1"><div style="font-weight:600;font-size:13px">${u.name}</div><div style="font-size:11px;color:var(--muted)">${u.username} · <span class="badge ${role.color}" style="font-size:10px">${role.label}</span></div></div>
+          ${isCurrent?'<span style="font-size:11px;color:var(--accent);font-weight:600">atual</span>':""}
+        </div>`;
+      }).join("")
+    :"<p style='color:var(--muted);font-size:13px'>Nenhum utilizador ativo disponível.</p>";
+
+  document.getElementById("userSwitchModal").classList.add("open");
+}
+
+function selectSwitchUser(id){
+  pendingSwitchUserId=id;
+  document.querySelectorAll("#userSwitchList > div").forEach(el=>{
+    const isThis=el.id==="switchOpt-"+id;
+    el.style.borderColor=isThis?"var(--accent)":"var(--border)";
+    el.style.background=isThis?"var(--accent-light)":"var(--surface)";
+  });
+  const u=appUsers.find(x=>x.id===id);
+  const needsPwd=authModeEnabled&&u&&u.pwd;
+  document.getElementById("userSwitchPwdWrap").style.display=needsPwd?"block":"none";
+  document.getElementById("userSwitchPwd").value="";
+  document.getElementById("userSwitchPwdErr").style.display="none";
+  document.getElementById("userSwitchBtn").style.display="inline-block";
+}
+
+function confirmUserSwitch(){
+  if(!pendingSwitchUserId) return;
+  const u=appUsers.find(x=>x.id===pendingSwitchUserId);if(!u)return;
+  if(authModeEnabled&&u.pwd){
+    const entered=document.getElementById("userSwitchPwd").value;
+    if(simpleHash(entered)!==u.pwd){
+      document.getElementById("userSwitchPwdErr").style.display="block";return;
+    }
+  }
+  u.lastAccess=new Date().toISOString().slice(0,10);
+  currentUser={...u};
+  updateHeaderUser();
+  applyNavAccess();
+  closeUserSwitch();
+  persistAppData();
+  renderUsers();
+}
+
+function closeUserSwitch(){document.getElementById("userSwitchModal").classList.remove("open");}
+
+// Simple hash for passwords (not cryptographic — local use only)
+function simpleHash(str){
+  let h=0;
+  for(let i=0;i<str.length;i++){h=((h<<5)-h+str.charCodeAt(i))|0;}
+  return h.toString(36);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════
+loadAppData();
+// Set default user to first active admin if none selected
+if(!currentUser){
+  const firstAdmin=appUsers.find(u=>u.role==="admin"&&u.status==="active");
+  if(firstAdmin){ currentUser={...firstAdmin}; }
+}
+updateHeaderUser();
+applyNavAccess();
+renderDash();renderSystems();renderAnalyses();renderTable();
+renderLibraries();renderControls();renderMatrix();syncSysFilter();renderPlans();renderUsers();
+</script>
+
+<!-- ═══ MODAL: LIBRARY WIZARD ══════════════════════════════════════ -->
+<div class="overlay" id="lwModal">
+<div class="modal" style="max-width:820px">
+  <div class="mhdr">
+    <div class="mtitle">Nova biblioteca de riscos</div>
+    <button class="btn btn-sm" onclick="closeLibWiz()">Fechar ✕</button>
+  </div>
+  <div class="wsteps" id="lwSteps"></div>
+
+  <!-- Step 0: Metadata -->
+  <div class="lwpanel active" id="lwp0">
+    <div class="wq">Definição da biblioteca</div>
+    <div class="wsub">O nome é obrigatório. Os restantes campos são opcionais.</div>
+    <div class="fgrid" style="margin-bottom:14px">
+      <div class="fg full"><label>Nome da biblioteca *</label><input id="lw-name" type="text" placeholder="Ex: Riscos SAP, Política Interna XPTO, DORA Controls"></div>
+      <div class="fg full"><label>Descrição</label><textarea id="lw-desc" rows="2" placeholder="Descreve o âmbito e objetivo desta biblioteca..."></textarea></div>
+      <div class="fg"><label>Tipo / Framework de referência</label>
+        <input id="lw-framework" type="text" placeholder="Ex: Interno, OWASP, ISO 27001, DORA, custom">
+      </div>
+      <div class="fg"><label>Versão</label><input id="lw-version" type="text" placeholder="Ex: 1.0, 2024-Q1"></div>
+      <div class="fg"><label>Tipo de sistema alvo</label>
+        <select id="lw-target">
+          <option value="">— Não especificado —</option>
+          <option>Aplicação Web</option><option>API / Serviço</option><option>Aplicação Mobile</option>
+          <option>Infraestrutura</option><option>SaaS</option><option>Base de Dados</option>
+          <option>Rede</option><option>ERP / SAP</option><option>Genérico</option>
+        </select>
+      </div>
+      <div class="fg"><label>Autor / Responsável</label><input id="lw-author" type="text" placeholder="Ex: CISO, Equipa de Segurança"></div>
+      <div class="fg"><label>Número de riscos a criar</label>
+        <input id="lw-nrisks" type="number" min="1" max="50" value="5" placeholder="Ex: 10">
+      </div>
+      <div class="fg"><label>Cor identificativa</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="lw-color" type="color" value="#1d3461" style="width:48px;height:36px;padding:2px;border-radius:var(--r);border:1px solid var(--border);cursor:pointer">
+          <span style="font-size:12px;color:var(--muted)">Cor usada para identificar a biblioteca</span>
+        </div>
+      </div>
+    </div>
+    <div class="wnav"><div></div><button class="btn btn-primary" onclick="lwNextMeta()">Seguinte — Definir riscos →</button></div>
+  </div>
+
+  <!-- Step 1: Risks list -->
+  <div class="lwpanel" id="lwp1">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div><div class="wq" style="margin-bottom:2px">Riscos da biblioteca</div><div class="wsub" style="margin-bottom:0">Edita cada risco. Clica em "+ Adicionar risco" para criar novos.</div></div>
+      <button class="btn btn-green" onclick="lwAddRisk()">+ Adicionar risco</button>
+    </div>
+    <div id="lwRisksList" style="max-height:420px;overflow-y:auto;padding-right:4px"></div>
+    <div class="wnav" style="margin-top:14px">
+      <button class="btn" onclick="lwGo(0)">← Anterior</button>
+      <button class="btn btn-primary" onclick="lwNextRisks()">Seguinte — Definir controlos →</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Controls per risk -->
+  <div class="lwpanel" id="lwp2">
+    <div class="wprogress" id="lwCtrlProgress"></div>
+    <div class="ir-card">
+      <div class="ir-hdr">
+        <h3 id="lwCtrlRiskName"></h3>
+        <p id="lwCtrlRiskDesc" style="font-size:12px;opacity:.8;margin-top:3px"></p>
+      </div>
+      <div class="ir-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span class="slabel" style="margin:0">Controlos associados a este risco</span>
+          <button class="btn btn-sm btn-green" onclick="lwAddCtrl()">+ Adicionar controlo</button>
+        </div>
+        <div id="lwCtrlList"></div>
+      </div>
+    </div>
+    <div class="wnav" style="margin-top:14px">
+      <button class="btn" id="lwCtrlPrev" onclick="lwCtrlPrev()">← Anterior</button>
+      <button class="btn btn-primary" id="lwCtrlNext" onclick="lwCtrlNext()">Seguinte risco →</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Review -->
+  <div class="lwpanel" id="lwp3">
+    <div class="wq" style="margin-bottom:8px">Revisão final</div>
+    <div id="lwReview"></div>
+    <div class="wnav" style="margin-top:14px">
+      <button class="btn" onclick="lwGo(2)">← Anterior</button>
+      <button class="btn btn-primary" onclick="lwSaveLib()">Guardar biblioteca ✓</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL: EDIT RISK (inside lib wizard) ════════════════════════ -->
+<div class="overlay" id="lwRiskModal" style="z-index:300">
+<div class="modal" style="max-width:560px">
+  <div class="mhdr"><div class="mtitle">Editar risco</div><button class="btn btn-sm" onclick="closeLwRiskModal()">Fechar ✕</button></div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="fgrid">
+      <div class="fg"><label>ID do risco</label><input id="lwr-id" type="text" placeholder="Ex: R01, A01, RIS-001"></div>
+      <div class="fg"><label>Vetor CIA</label>
+        <select id="lwr-cia">
+          <option value="CIA">CIA — Todos</option>
+          <option value="C">C — Confidencialidade</option>
+          <option value="I">I — Integridade</option>
+          <option value="A">A — Disponibilidade</option>
+        </select>
+      </div>
+      <div class="fg full"><label>Nome do risco *</label><input id="lwr-name" type="text" placeholder="Ex: Injeção SQL, Acesso não autorizado, ..."></div>
+      <div class="fg full"><label>Descrição</label><textarea id="lwr-desc" rows="3" placeholder="Descreve o cenário de risco, impacto potencial e contexto..."></textarea></div>
+    </div>
+  </div>
+  <div class="mfooter">
+    <button class="btn" onclick="closeLwRiskModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="lwSaveRisk()">Guardar risco</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL: EDIT CONTROL (inside lib wizard) ═════════════════════ -->
+<div class="overlay" id="lwCtrlModal" style="z-index:300">
+<div class="modal" style="max-width:560px">
+  <div class="mhdr"><div class="mtitle">Definir controlo</div><button class="btn btn-sm" onclick="closeLwCtrlModal()">Fechar ✕</button></div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="fgrid">
+      <div class="fg"><label>ID do controlo</label><input id="lwc-id" type="text" placeholder="Ex: XYZ-C01, CTRL-001"></div>
+      <div class="fg"><label>Tipo</label>
+        <select id="lwc-type"><option>Preventivo</option><option>Detetivo</option><option>Resposta</option></select>
+      </div>
+      <div class="fg full"><label>Nome do controlo *</label><input id="lwc-name" type="text" placeholder="Ex: Validação de input, Logging de acessos..."></div>
+      <div class="fg full"><label>Descrição</label><textarea id="lwc-desc" rows="2" placeholder="Descreve o controlo e como mitiga o risco..."></textarea></div>
+      <div class="fg full"><label>Referência normativa</label><input id="lwc-ref" type="text" placeholder="Ex: ISO 27001 A.14.2, OWASP ASVS 5.3, política interna..."></div>
+    </div>
+  </div>
+  <div class="mfooter">
+    <button class="btn" onclick="closeLwCtrlModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="lwSaveCtrl()">Guardar controlo</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL: PLANO DE MITIGAÇÃO ═══════════════════════════════════ -->
+<div class="overlay" id="planModal">
+<div class="modal" style="max-width:720px">
+  <div class="mhdr">
+    <div class="mtitle" id="planMTitle">Novo plano de mitigação</div>
+    <button class="btn btn-sm" onclick="closePlanModal()">Fechar ✕</button>
+  </div>
+  <div class="fgrid">
+    <div class="fg full"><label>Risco associado *</label>
+      <select id="pm-risk"><option value="">— Seleciona um risco —</option></select>
+    </div>
+    <div class="fg full">
+      <label>Controlo a implementar *</label>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <button id="pm-ctrl-mode-list" class="btn btn-sm btn-accent" onclick="setCtrlMode('list')" style="font-size:12px">Da biblioteca</button>
+        <button id="pm-ctrl-mode-free" class="btn btn-sm" onclick="setCtrlMode('free')" style="font-size:12px">Controlo livre</button>
+      </div>
+      <div id="pm-ctrl-list-wrap">
+        <select id="pm-ctrl"><option value="">— Seleciona um controlo —</option></select>
+      </div>
+      <div id="pm-ctrl-free-wrap" style="display:none;flex-direction:column;gap:6px">
+        <input id="pm-ctrl-free-id" type="text" placeholder="ID do controlo (ex: CTRL-001)" style="border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;font-size:13px;font-family:inherit;color:var(--text)">
+        <input id="pm-ctrl-free-name" type="text" placeholder="Nome do controlo (ex: Revisão de permissões trimestral)" style="border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;font-size:13px;font-family:inherit;color:var(--text)">
+      </div>
+    </div>
+    <div class="fg"><label>Sistema</label>
+      <select id="pm-system"><option value="">— Sem sistema —</option></select>
+    </div>
+    <div class="fg"><label>Responsável pela implementação</label>
+      <input id="pm-owner" type="text" placeholder="Ex: CISO, DevSecOps, IT Manager">
+    </div>
+    <div class="fg"><label>Data limite de implementação</label>
+      <input id="pm-due" type="date">
+    </div>
+    <div class="fg"><label>Estado</label>
+      <select id="pm-status">
+        <option>Aberto</option><option>Em progresso</option><option>Concluído</option><option>Cancelado</option>
+      </select>
+    </div>
+    <div class="fg full"><label>Descrição / Ações previstas</label>
+      <textarea id="pm-desc" rows="3" placeholder="Descreve as ações concretas para implementar este controlo..."></textarea>
+    </div>
+  </div>
+
+  <div class="divider" style="margin:16px 0"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+    <span class="slabel" style="margin:0">Histórico de atualizações</span>
+  </div>
+  <div id="pmUpdates" style="margin-bottom:12px;max-height:200px;overflow-y:auto"></div>
+  <div style="display:flex;gap:8px;align-items:flex-start">
+    <textarea id="pm-update-text" rows="2" style="flex:1;border:1px solid var(--border);border-radius:var(--r);padding:8px;font-size:13px;font-family:inherit;resize:vertical" placeholder="Adiciona uma atualização de estado (ex: 'MFA implementado em 80% das contas')..."></textarea>
+    <button class="btn btn-sm btn-green" style="flex-shrink:0;margin-top:2px" onclick="addUpdate()">+ Adicionar</button>
+  </div>
+
+  <div class="mfooter">
+    <button class="btn" onclick="closePlanModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="savePlan()">Guardar plano</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL: UTILIZADOR ════════════════════════════════════════════ -->
+<div class="overlay" id="userModal">
+<div class="modal" style="max-width:540px">
+  <div class="mhdr">
+    <div class="mtitle" id="userMTitle">Novo utilizador</div>
+    <button class="btn btn-sm" onclick="closeUserModal()">Fechar ✕</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="fgrid">
+      <div class="fg full"><label>Nome completo *</label><input id="uf-name" type="text" placeholder="Ex: João Silva"></div>
+      <div class="fg"><label>Username *</label><input id="uf-username" type="text" placeholder="Ex: jsilva" autocomplete="off"></div>
+      <div class="fg"><label>Email</label><input id="uf-email" type="email" placeholder="Ex: joao@empresa.pt"></div>
+      <div class="fg"><label>Perfil *</label>
+        <select id="uf-role">
+          <option value="admin">Administrador</option>
+          <option value="risk_manager" selected>Gestor de Risco</option>
+          <option value="readonly">Apenas Leitura</option>
+        </select>
+      </div>
+      <div class="fg"><label>Estado</label>
+        <select id="uf-status">
+          <option value="active">Ativo</option>
+          <option value="inactive">Inativo</option>
+        </select>
+      </div>
+    </div>
+    <div id="passwordSection">
+      <div class="fgrid">
+        <div class="fg"><label>Password <span id="pwdRequired" style="color:var(--muted);font-weight:400">(opcional — para uso futuro)</span></label>
+          <input id="uf-pwd" type="password" placeholder="Deixa em branco para sem password" autocomplete="new-password">
+        </div>
+        <div class="fg"><label>Confirmar password</label>
+          <input id="uf-pwd2" type="password" placeholder="Repete a password" autocomplete="new-password">
+        </div>
+      </div>
+    </div>
+    <div class="fg"><label>Notas</label><textarea id="uf-notes" rows="2" placeholder="Informação adicional sobre este utilizador..."></textarea></div>
+  </div>
+  <div class="mfooter">
+    <button class="btn" onclick="closeUserModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveUser()">Guardar utilizador</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL: TROCAR UTILIZADOR ════════════════════════════════════ -->
+<div class="overlay" id="userSwitchModal">
+<div class="modal" style="max-width:480px">
+  <div class="mhdr">
+    <div class="mtitle">Selecionar utilizador</div>
+    <button class="btn btn-sm" onclick="closeUserSwitch()">Fechar ✕</button>
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Seleciona o teu utilizador para aceder com o perfil correto.</p>
+  <div id="userSwitchList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+  <div id="userSwitchPwdWrap" style="display:none;margin-bottom:14px">
+    <div class="fg"><label>Password</label><input id="userSwitchPwd" type="password" placeholder="Introduz a tua password"></div>
+    <div id="userSwitchPwdErr" style="color:var(--crit);font-size:12px;margin-top:6px;display:none">Password incorreta.</div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:8px">
+    <button class="btn" onclick="closeUserSwitch()">Cancelar</button>
+    <button class="btn btn-primary" id="userSwitchBtn" onclick="confirmUserSwitch()" style="display:none">Entrar</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL: JSON COPY/PASTE ═══════════════════════════════════════ -->
+<div class="overlay" id="jsonModal">
+<div class="modal" style="max-width:680px">
+  <div class="mhdr">
+    <div class="mtitle" id="jsonModalTitle">JSON</div>
+    <button class="btn btn-sm" onclick="closeJsonModal()">Fechar ✕</button>
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:10px">
+    Para <strong>exportar</strong>: seleciona todo o texto (Ctrl+A) e copia (Ctrl+C). Guarda num ficheiro .txt ou .json.<br>
+    Para <strong>importar</strong>: cola o JSON guardado anteriormente e clica em "Importar".
+  </p>
+  <textarea id="jsonModalArea" rows="16" style="width:100%;border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:12px;font-family:var(--font-mono,monospace);resize:vertical;color:var(--text);background:var(--bg)" placeholder="Cola aqui o JSON..."></textarea>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap">
+    <button id="jsonModalCopyBtn" class="btn btn-primary" onclick="jsonModalCopy()">Selecionar e copiar tudo</button>
+    <button id="jsonModalImportBtn" class="btn btn-accent" onclick="jsonModalImport()" style="display:none">Importar JSON</button>
+    <span id="jsonModalStatus" style="font-size:12px;color:var(--med);font-weight:600"></span>
+    <div class="spacer"></div>
+    <button class="btn" onclick="closeJsonModal()">Fechar</button>
+  </div>
+</div>
+</div>
+
+</body>
+</html>
