@@ -765,6 +765,27 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
 </main>
 </div>
 
+<!-- ═══ MODAL: VISUALIZAR SISTEMA ════════════════════════════════════ -->
+<div class="overlay" id="sysViewModal">
+<div class="modal" style="max-width:680px">
+  <div class="mhdr">
+    <div>
+      <div class="mtitle" id="svTitle"></div>
+      <div id="svSubtitle" style="font-size:12px;color:var(--muted);margin-top:2px"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button class="btn btn-sm btn-accent" id="svAnalyseBtn">▶ Analisar</button>
+      <button class="btn btn-sm" id="svEditBtn">Editar</button>
+      <button class="btn btn-sm" onclick="closeSysView()">Fechar ✕</button>
+    </div>
+  </div>
+  <div id="svStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px"></div>
+  <div id="svInfo" style="margin-bottom:18px"></div>
+  <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Análises recentes</div>
+  <div id="svAnalyses"></div>
+</div>
+</div>
+
 <!-- ═══ MODAL: SISTEMA ═══════════════════════════════════════════════ -->
 <div class="overlay" id="sysModal">
 <div class="modal">
@@ -1410,7 +1431,7 @@ function renderSystems(){
     const ac=analyses.filter(a=>a.system===s.id).length;
     const ciaAbbr=v=>({"Reduzido":"R","Médio":"M","Alto":"A","Muito Alto":"MA"})[v]||"—";
     const ciaStr=`${ciaAbbr(s.cia?.C)} ${ciaAbbr(s.cia?.I)} ${ciaAbbr(s.cia?.A)}`;
-    return`<tr>
+    return`<tr style="cursor:pointer" onclick="openSysView('${s.id}')" title="Clica para ver detalhes">
       <td>
         <div style="font-weight:700;font-size:13px">${s.name}</div>
         ${s.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${s.desc}</div>`:""}
@@ -1423,7 +1444,7 @@ function renderSystems(){
       <td style="font-size:12px;color:var(--muted)">${s.owner||"—"}</td>
       <td style="text-align:center;font-size:13px;font-weight:600">${ac}</td>
       <td style="text-align:center;font-size:13px;font-weight:600">${rc}</td>
-      <td style="white-space:nowrap">
+      <td style="white-space:nowrap" onclick="event.stopPropagation()">
         <button class="btn btn-sm btn-accent" onclick="startWiz('${s.id}')" title="Iniciar análise de risco">▶${hasDraftForSystem(s.id)?' 📝':''}</button>
         <button class="btn btn-sm" onclick="openSysEdit('${s.id}')">Editar</button>
         <button class="btn btn-sm btn-danger" onclick="delSys('${s.id}')">✕</button>
@@ -1431,6 +1452,77 @@ function renderSystems(){
     </tr>`;
   }).join("");
 }
+
+function openSysView(id){
+  const s=sysById(id);if(!s)return;
+  const crit=sysCrit(s);
+  const rc=risks.filter(r=>r.system===id);
+  const ac=analyses.filter(a=>a.system===id);
+  const plans=mitigationPlans.filter(p=>p.system===id);
+  const ciaFull=v=>({"Reduzido":"Reduzido","Médio":"Médio","Alto":"Alto","Muito Alto":"Muito Alto"})[v]||"—";
+  const scores=rc.map(r=>r.prob*r.impact);
+  const avgScore=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+  const maxScore=scores.length?Math.max(...scores):null;
+  const residScores=rc.map(r=>r.residualScore||r.prob*r.impact);
+  const maxResid=residScores.length?Math.max(...residScores):null;
+  const openRisks=rc.filter(r=>r.status==="Aberto").length;
+  const mitigRisks=rc.filter(r=>r.status==="Mitigado").length;
+
+  document.getElementById("svTitle").textContent=s.name;
+  document.getElementById("svSubtitle").textContent=`${s.type} · ${s.env||"—"}`;
+
+  document.getElementById("svInfo").innerHTML=`
+    <div class="fgrid" style="gap:10px">
+      <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Proprietário</div><div style="font-size:13px">${s.owner||"—"}</div></div>
+      <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Tipo</div><div style="font-size:13px">${s.type}</div></div>
+      <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Ambiente</div><div style="font-size:13px">${s.env||"—"}</div></div>
+      <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Criticidade</div><div><span class="${bc(crit)}">${crit}</span></div></div>
+      <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Classificação</div><div>${s.classification?`<span class="badge ${classColor(s.classification)}">${s.classification}</span>`:"—"}</div></div>
+      <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Dados processados</div><div style="font-size:13px">${(s.data||[]).join(", ")||"—"}</div></div>
+      ${s.desc?`<div class="fg full"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Descrição</div><div style="font-size:13px">${s.desc}</div></div>`:""}
+    </div>
+    <div style="margin-top:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">CIA — Classificação de impacto</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Confidencialidade</div>
+          <span class="${bc(s.cia?.C)}">${ciaFull(s.cia?.C)}</span>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Integridade</div>
+          <span class="${bc(s.cia?.I)}">${ciaFull(s.cia?.I)}</span>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Disponibilidade</div>
+          <span class="${bc(s.cia?.A)}">${ciaFull(s.cia?.A)}</span>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById("svStats").innerHTML=`
+    <div class="metric-mini"><div class="mv">${ac.length}</div><div class="ml">Análises</div></div>
+    <div class="metric-mini"><div class="mv">${rc.length}</div><div class="ml">Riscos</div></div>
+    <div class="metric-mini"><div class="mv" style="color:var(--crit)">${openRisks}</div><div class="ml">Em aberto</div></div>
+    <div class="metric-mini"><div class="mv" style="color:var(--med)">${mitigRisks}</div><div class="ml">Mitigados</div></div>
+    <div class="metric-mini"><div class="mv">${plans.length}</div><div class="ml">Planos</div></div>
+    ${maxResid!==null?`<div class="metric-mini"><div class="mv s-${sc(maxResid)}" style="width:auto;height:auto;padding:2px 8px;border-radius:4px;display:inline-block">${maxResid}</div><div class="ml">Score resid. máx.</div></div>`:""}`;
+
+  // Recent analyses
+  document.getElementById("svAnalyses").innerHTML=ac.length
+    ?ac.slice(0,5).map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span class="rid">${a.id}</span>
+        <span style="font-size:12px;flex:1">${a.lib}</span>
+        <span style="font-size:11px;color:var(--muted)">${a.date}</span>
+        ${a.locked?'<span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:600">✓</span>':""}
+      </div>`).join("")
+    :"<p style='font-size:13px;color:var(--muted)'>Nenhuma análise realizada.</p>";
+
+  document.getElementById("svEditBtn").onclick=()=>{ closeSysView(); openSysEdit(id); };
+  document.getElementById("svAnalyseBtn").onclick=()=>{ closeSysView(); startWiz(id); };
+
+  document.getElementById("sysViewModal").classList.add("open");
+}
+function closeSysView(){document.getElementById("sysViewModal").classList.remove("open");}
 
 function ciaRow(label,val){
   const pct=CIA_PCT[val]||0,col=CIA_COL[val]||"#2563eb";
