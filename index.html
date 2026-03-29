@@ -367,6 +367,20 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
       <div class="ctitle" style="margin-bottom:0">Biblioteca de controlos de segurança</div>
       <button class="btn btn-primary" onclick="openCtrlAdd()">+ Novo controlo</button>
     </div>
+    <div class="toolbar" style="margin-bottom:12px">
+      <input type="text" id="ctrlSearch" placeholder="Pesquisar controlos..." oninput="renderControls()" style="min-width:200px">
+      <select id="ctrlFilterLib" onchange="renderControls()">
+        <option value="">Todas as bibliotecas</option>
+      </select>
+      <select id="ctrlFilterType" onchange="renderControls()">
+        <option value="">Todos os tipos</option>
+        <option>Preventivo</option>
+        <option>Detetivo</option>
+        <option>Resposta</option>
+      </select>
+      <div class="spacer"></div>
+      <span id="ctrlCount" style="font-size:12px;color:var(--muted);align-self:center"></span>
+    </div>
     <div class="twrap">
       <table><thead><tr><th>ID</th><th>Controlo</th><th>Tipo</th><th>Referência</th><th>Biblioteca</th><th>Risco</th><th>Associados</th><th></th></tr></thead>
       <tbody id="ctrlTable"></tbody></table>
@@ -1769,20 +1783,47 @@ function delRisk(id){confirmDialog("Remover este risco?",{title:"Remover risco",
 // CONTROLS
 // ════════════════════════════════════════════════════════════════════
 function renderControls(){
-  // Build flat list: all ctrl objects from all libs, grouped by lib
-  const rows=[];
+  const q=(document.getElementById("ctrlSearch")?.value||"").toLowerCase().trim();
+  const fLib=document.getElementById("ctrlFilterLib")?.value||"";
+  const fType=document.getElementById("ctrlFilterType")?.value||"";
+
+  // Build flat list from all libs
+  const allRows=[];
+  const libNames=new Set();
   Object.entries({...LIBS,...customLibs}).forEach(([libName,lib])=>{
+    libNames.add(libName);
     lib.risks.forEach(r=>{
       (r.ctrls||[]).forEach(c=>{
         const co=typeof c==='object'?c:{id:c,name:c,type:'Preventivo',desc:'',ref:''};
-        const isEditable=!!customLibs[libName]||(typeof lib._editable!=='undefined'?lib._editable:false);
-        rows.push({...co,_lib:libName,_risk:r.id,_riskName:r.name,_editable:true});
+        allRows.push({...co,_lib:libName,_risk:r.id,_riskName:r.name});
       });
     });
   });
 
+  // Sync library dropdown
+  const sel=document.getElementById("ctrlFilterLib");
+  if(sel){
+    const cur=sel.value;
+    sel.innerHTML='<option value="">Todas as bibliotecas</option>'+
+      [...libNames].map(n=>`<option value="${n}" ${n===cur?"selected":""}>${n}</option>`).join("");
+  }
+
+  // Apply filters
+  const rows=allRows.filter(c=>{
+    if(fLib && c._lib!==fLib) return false;
+    if(fType && c.type!==fType) return false;
+    if(q && !c.name.toLowerCase().includes(q) && !c.id.toLowerCase().includes(q) && !c._lib.toLowerCase().includes(q) && !c._riskName.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  // Update count
+  const countEl=document.getElementById("ctrlCount");
+  if(countEl) countEl.textContent=rows.length===allRows.length
+    ?`${allRows.length} controlo${allRows.length!==1?"s":""}`
+    :`${rows.length} de ${allRows.length} controlo${allRows.length!==1?"s":""}`;
+
   if(!rows.length){
-    document.getElementById("ctrlTable").innerHTML=`<tr><td colspan="7" class="empty">Nenhum controlo definido.</td></tr>`;
+    document.getElementById("ctrlTable").innerHTML=`<tr><td colspan="8" class="empty">${allRows.length?'Nenhum controlo corresponde aos filtros.':'Nenhum controlo definido.'}</td></tr>`;
     return;
   }
   document.getElementById("ctrlTable").innerHTML=rows.map(c=>{
