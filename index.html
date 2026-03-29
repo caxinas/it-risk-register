@@ -1200,9 +1200,9 @@ function bc(l){const m={Crítico:"b-critico",Alto:"b-alto",Médio:"b-medio",Baix
 function ctc(t){return t==="Preventivo"?"ct-prev":t==="Detetivo"?"ct-det":"ct-resp";}
 function sysById(id){return systems.find(s=>s.id===id);}
 function sysCrit(s){const v=[CIA_PCT[s.cia.C]||0,CIA_PCT[s.cia.I]||0,CIA_PCT[s.cia.A]||0];const a=v.reduce((x,y)=>x+y,0)/3;if(a>=88)return"Muito Alto";if(a>=63)return"Alto";if(a>=38)return"Médio";return"Reduzido";}
-function nextSysId(){return"S-"+String(Math.max(0,...systems.map(s=>parseInt(s.id.replace("S-",""))||0))+1).padStart(3,"0");}
-function nextRiskId(){return"R-"+String(Math.max(0,...(risks.length?risks.map(r=>parseInt(r.id.replace("R-",""))||0):[0]))+1).padStart(3,"0");}
-function nextAnalysisId(){return"AN-"+String(Math.max(0,...(analyses.length?analyses.map(a=>parseInt(a.id.replace("AN-",""))||0):[0]))+1).padStart(3,"0");}
+function nextSysId(){const nums=systems.map(s=>parseInt(s.id.replace("S-",""))||0);return"S-"+String(Math.max(0,...(nums.length?nums:[0]))+1).padStart(3,"0");}
+function nextRiskId(){const nums=risks.map(r=>parseInt(r.id.replace("R-",""))||0);return"R-"+String(Math.max(0,...(nums.length?nums:[0]))+1).padStart(3,"0");}
+function nextAnalysisId(){const nums=analyses.map(a=>parseInt(a.id.replace("AN-",""))||0);return"AN-"+String(Math.max(0,...(nums.length?nums:[0]))+1).padStart(3,"0");}
 function ctrl(id){return globalCtrls.find(c=>c.id===id);}
 
 // ════════════════════════════════════════════════════════════════════
@@ -2966,7 +2966,7 @@ const PLAN_STATUS_COLORS = {Aberto:"b-aberto","Em progresso":"b-alto",Concluído
 
 function nextPlanId(){
   const nums=mitigationPlans.map(p=>parseInt(p.id.replace("PM-",""))||0);
-  return"PM-"+String(Math.max(0,...nums)+1).padStart(3,"0");
+  return"PM-"+String(Math.max(0,...(nums.length?nums:[0]))+1).padStart(3,"0");
 }
 
 function renderPlans(){
@@ -3245,7 +3245,7 @@ let pendingSwitchUserId = null;
 
 function nextUserId(){
   const nums=appUsers.map(u=>parseInt(u.id.replace("U-",""))||0);
-  return"U-"+String(Math.max(0,...nums)+1).padStart(3,"0");
+  return"U-"+String(Math.max(0,...(nums.length?nums:[0]))+1).padStart(3,"0");
 }
 
 // ── Render users tab ──────────────────────────────────────────────
