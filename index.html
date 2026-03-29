@@ -228,9 +228,42 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
 .empty{text-align:center;padding:32px;color:var(--muted);}
 .tag{display:inline-block;padding:1px 7px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--muted);margin:1px;}
 .divider{height:1px;background:var(--border);margin:16px 0;}
+/* ── Toast ── */
+#toastContainer{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none;}
+.toast{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--r);font-size:13px;font-weight:500;max-width:360px;box-shadow:0 4px 16px rgba(0,0,0,.12);pointer-events:all;animation:toastIn .2s ease;transition:opacity .3s,transform .3s;}
+.toast.hiding{opacity:0;transform:translateX(20px);}
+.toast-success{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;}
+.toast-error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;}
+.toast-info{background:var(--accent-light);border:1px solid var(--accent);color:var(--accent);}
+.toast-warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e;}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+/* ── Confirm modal ── */
+.confirm-body{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;}
+.confirm-icon{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.ci-danger{background:#fef2f2;} .ci-warn{background:#fffbeb;}
 </style>
 </head>
 <body>
+<div id="toastContainer"></div>
+
+<!-- ═══ MODAL: CONFIRMAÇÃO ════════════════════════════════════════════ -->
+<div class="overlay" id="confirmModal" style="display:none">
+<div class="modal" style="max-width:400px">
+  <div class="mhdr"><div class="mtitle" id="confirmTitle">Confirmar</div></div>
+  <div class="confirm-body">
+    <div class="confirm-icon" id="confirmIcon">⚠</div>
+    <div>
+      <div id="confirmMsg" style="font-size:14px;line-height:1.6;color:var(--text)"></div>
+      <div id="confirmSub" style="font-size:12px;color:var(--muted);margin-top:6px"></div>
+    </div>
+  </div>
+  <div class="mfooter">
+    <button class="btn" onclick="_confirmResolve(false)">Cancelar</button>
+    <button class="btn btn-danger" id="confirmOkBtn" onclick="_confirmResolve(true)">Confirmar</button>
+  </div>
+</div>
+</div>
+
 <div class="app">
 <header>
   <div><h1>IT Risk Register</h1><span>Gestão de Risco de Segurança de Informação</span></div>
@@ -962,6 +995,40 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
 // ════════════════════════════════════════════════════════════════════
 // DATA — LIBRARIES
 // ════════════════════════════════════════════════════════════════════
+// ── Toast & Confirm ──────────────────────────────────────────────
+function toast(msg, type="info", duration=3500){
+  const el=document.createElement("div");
+  el.className=`toast toast-${type}`;
+  const icons={success:"✓",error:"✕",warn:"⚠",info:"ℹ"};
+  el.innerHTML=`<span style="font-size:16px;flex-shrink:0">${icons[type]||"ℹ"}</span><span>${msg}</span>`;
+  document.getElementById("toastContainer").appendChild(el);
+  setTimeout(()=>{
+    el.classList.add("hiding");
+    setTimeout(()=>el.remove(), 350);
+  }, duration);
+}
+
+let _confirmResolve=null;
+function confirmDialog(msg, {title="Confirmar",sub="",okLabel="Confirmar",danger=true}={}){
+  return new Promise(resolve=>{
+    _confirmResolve=(v)=>{
+      document.getElementById("confirmModal").style.display="none";
+      resolve(v);
+    };
+    document.getElementById("confirmTitle").textContent=title;
+    document.getElementById("confirmMsg").textContent=msg;
+    document.getElementById("confirmSub").textContent=sub||"";
+    document.getElementById("confirmSub").style.display=sub?"block":"none";
+    const icon=document.getElementById("confirmIcon");
+    icon.textContent=danger?"🗑":"⚠";
+    icon.className=`confirm-icon ${danger?"ci-danger":"ci-warn"}`;
+    const okBtn=document.getElementById("confirmOkBtn");
+    okBtn.textContent=okLabel;
+    okBtn.className=`btn ${danger?"btn-danger":"btn-primary"}`;
+    document.getElementById("confirmModal").style.display="flex";
+  });
+}
+
 const LIBS = {
   "OWASP Top 10 Web": {
     id:"owasp-web", color:"#dc2626",
@@ -1327,16 +1394,16 @@ function openSysEdit(id){
 function closeSysModal(){document.getElementById("sysModal").classList.remove("open");}
 function saveSys(){
   const name=document.getElementById("sf-name").value.trim();
-  if(!name){alert("O nome é obrigatório.");return;}
-  if(!ciaState.C||!ciaState.I||!ciaState.A){alert("Classifica os três vetores CIA.");return;}
+  if(!name){toast("O nome é obrigatório.","error");return;}
+  if(!ciaState.C||!ciaState.I||!ciaState.A){toast("Classifica os três vetores CIA.","error");return;}
   const data=Array.from(document.getElementById("sf-data").selectedOptions).map(o=>o.value);
   const classification=document.getElementById("sf-class").value;
   const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,classification,data,cia:{...ciaState}};
   if(editSysId){systems[systems.findIndex(x=>x.id===editSysId)]=s;}else{systems.push(s);}
   closeSysModal();persistAppData();renderSystems();syncSysFilter();
 }
-function delSys(id){
-  if(!confirm("Remover este sistema? Os riscos e análises associados serão desligados."))return;
+async function delSys(id){
+  if(!await confirmDialog("Remover este sistema?",{title:"Remover sistema",sub:"Os riscos e análises associados serão desligados.",okLabel:"Remover",danger:true}))return;
   systems=systems.filter(s=>s.id!==id);
   risks.forEach(r=>{if(r.system===id)r.system="";});
   analyses=analyses.filter(a=>a.system!==id);
@@ -1458,8 +1525,8 @@ function viewAnalysis(aid){
 }
 function closeViewAnalysis(){document.getElementById("viewAnalysisModal").classList.remove("open");}
 
-function delAnalysis(id){
-  if(!confirm("Remover esta análise? Os riscos associados também serão removidos."))return;
+async function delAnalysis(id){
+  if(!await confirmDialog("Remover esta análise?",{title:"Remover análise",sub:"Os riscos associados também serão removidos.",okLabel:"Remover",danger:true}))return;
   risks=risks.filter(r=>r.analysis!==id);
   analyses=analyses.filter(a=>a.id!==id);
   persistAppData();renderAnalyses();renderTable();renderDash();
@@ -1689,12 +1756,12 @@ function openRiskEdit(id){
 function closeRiskModal(){document.getElementById("riskModal").classList.remove("open");}
 function saveRisk(){
   const title=document.getElementById("rf-title").value.trim();
-  if(!title){alert("O título é obrigatório.");return;}
+  if(!title){toast("O título é obrigatório.","error");return;}
   const r={id:editRiskId||nextRiskId(),title,desc:document.getElementById("rf-desc").value,domain:document.getElementById("rf-domain").value,owner:document.getElementById("rf-owner").value,system:document.getElementById("rf-sys").value,cia:document.getElementById("rf-cia").value,libName:document.getElementById("rf-lib").value,prob:+document.getElementById("rf-prob").value,impact:+document.getElementById("rf-impact").value,treatment:document.getElementById("rf-treatment").value,plan:document.getElementById("rf-plan").value,status:document.getElementById("rf-status").value,date:document.getElementById("rf-date").value,controls:getChecked("riskCtrlList")};
   if(editRiskId){risks[risks.findIndex(x=>x.id===editRiskId)]=r;}else{risks.push(r);}
   closeRiskModal();persistAppData();renderTable();
 }
-function delRisk(id){if(confirm("Remover este risco?")){risks=risks.filter(r=>r.id!==id);persistAppData();renderTable();}}
+function delRisk(id){confirmDialog("Remover este risco?",{title:"Remover risco",okLabel:"Remover",danger:true}).then(ok=>{if(ok){risks=risks.filter(r=>r.id!==id);persistAppData();renderTable();}});}
 
 
 
@@ -1802,7 +1869,7 @@ let editCtrlId=null, editCtrlLib=null, editCtrlRiskId=null;
 function saveCtrl(){
   const id=document.getElementById("gc-id").value.trim();
   const name=document.getElementById("gc-name").value.trim();
-  if(!name){alert("O nome é obrigatório.");return;}
+  if(!name){toast("O nome é obrigatório.","error");return;}
 
   if(editCtrlLib){
     const lib=allLibs()[editCtrlLib]; if(!lib)return;
@@ -1844,26 +1911,26 @@ function saveCtrl(){
       globalCtrls[idx]={id:id||editCtrlId,name,desc:document.getElementById("gc-desc").value.trim(),type:document.getElementById("gc-type").value,fw:document.getElementById("gc-fw").value.trim()};
     }
   } else {
-    if(!id){alert("O ID é obrigatório para controlos globais.");return;}
-    if(globalCtrls.find(x=>x.id===id)){alert(`ID "${id}" já existe.`);return;}
+    if(!id){toast("O ID é obrigatório para controlos globais.","error");return;}
+    if(globalCtrls.find(x=>x.id===id)){toast(`ID "${id}" já existe.`,"error");return;}
     globalCtrls.push({id,name,desc:document.getElementById("gc-desc").value.trim(),type:document.getElementById("gc-type").value,fw:document.getElementById("gc-fw").value.trim()});
   }
   persistAppData();renderControls();closeCtrlModal();
 }
 
-function deleteCtrl(id){
+async function deleteCtrl(id){
   const assoc=risks.filter(r=>r.controls&&r.controls.includes(id));
   const msg=assoc.length
     ?`Este controlo está associado a ${assoc.length} risco(s). Ao remover perderá essas associações. Continuar?`
     :"Remover este controlo da biblioteca global?";
-  if(!confirm(msg))return;
+  if(!await confirmDialog(msg,{title:"Remover controlo",okLabel:"Remover",danger:true}))return;
   globalCtrls=globalCtrls.filter(c=>c.id!==id);
   risks.forEach(r=>{if(r.controls)r.controls=r.controls.filter(x=>x!==id);});
   persistAppData();renderControls();
 }
 
-function deleteLibCtrl(libName, ctrlId){
-  if(!confirm(`Remover o controlo "${ctrlId}" da biblioteca "${libName}"?`))return;
+async function deleteLibCtrl(libName, ctrlId){
+  if(!await confirmDialog(`Remover o controlo "${ctrlId}"?`,{title:`Biblioteca: ${libName}`,okLabel:"Remover",danger:true}))return;
   // If native lib, copy to customLibs first to make editable
   if(!customLibs[libName] && LIBS[libName]){
     customLibs[libName]=JSON.parse(JSON.stringify(LIBS[libName]));
@@ -1922,14 +1989,14 @@ function wizGo(n){
   else if(n>1) saveDraft();
 }
 function wNext(step){
-  if(step===0){if(!wizCIA.C||!wizCIA.I||!wizCIA.A){alert("Classifica os três vetores CIA.");return;}}
+  if(step===0){if(!wizCIA.C||!wizCIA.I||!wizCIA.A){toast("Classifica os três vetores CIA.","error");return;}}
   if(step===1){
-    if(!wizSelectedLibs.length){alert("Seleciona pelo menos uma biblioteca.");return;}
+    if(!wizSelectedLibs.length){toast("Seleciona pelo menos uma biblioteca.","error");return;}
     buildMergedRisks();
   }
   if(step===2){
     const included=wizIRItems.filter(x=>!wizExcluded.has(x._key));
-    if(!included.length){alert("Inclui pelo menos um risco.");return;}
+    if(!included.length){toast("Inclui pelo menos um risco.","error");return;}
     wizIRItems=included; wizIRIdx=0; renderIRStep();
   }
   if(step===3) saveCurrentIR();
@@ -2266,7 +2333,7 @@ function wSave(){
   let msg=`Análise ${aid} registada com ${wizIRItems.length} risco${wizIRItems.length!==1?"s":""}`;
   if(mitigCount) msg+=` · ${mitigCount} auto-mitigado${mitigCount!==1?"s":""}`;
   if(planCount)  msg+=` · ${planCount} plano${planCount!==1?"s":""} de mitigação`;
-  alert(msg+".");
+  toast(msg,"success",4500);
   renderDash();renderSystems();renderAnalyses();renderTable();renderPlans();
 }
 
@@ -2417,12 +2484,12 @@ function jsonModalCopy(){
 }
 function jsonModalImport(){
   const val = document.getElementById("jsonModalArea").value.trim();
-  if(!val){ alert("Cola o JSON antes de importar."); return; }
+  if(!val){ toast("Cola o JSON antes de importar.","error"); return; }
   try {
     const data = JSON.parse(val);
     if(window._jsonModalCallback) window._jsonModalCallback(data);
     closeJsonModal();
-  } catch(e){ alert("JSON inválido. Verifica o texto colado."); }
+  } catch(e){ toast("JSON inválido. Verifica o texto colado.","error"); }
 }
 function showJsonStatus(msg){
   const el = document.getElementById("jsonModalStatus");
@@ -2442,11 +2509,11 @@ function doImportAppData(data){
   persistAppData();
   renderDash();renderSystems();renderAnalyses();renderTable();
   renderLibraries();renderControls();renderMatrix();syncSysFilter();renderPlans();renderUsers();
-  alert("Dados importados com sucesso.");
+  toast("Dados importados com sucesso.","success");
 }
 
 function doImportDraft(data){
-  if(!data.wizSysId){ alert("Não é um rascunho de análise válido."); return; }
+  if(!data.wizSysId){ toast("Não é um rascunho de análise válido.","error"); return; }
   window._wizDraft = data;
   restoreFromDraft(data);
   document.getElementById("wizModal").classList.add("open");
@@ -2479,12 +2546,12 @@ function restoreFromDraft(draft){
   showDraftStatus("Rascunho de "+savedAt+" restaurado");
 }
 
-function startWiz(sysId){
+async function startWiz(sysId){
   const draft = hasDraftForSystem(sysId) ? loadDraft() : null;
   if(draft){
     const sys=sysById(sysId);
     const savedAt = draft.savedAt ? new Date(draft.savedAt).toLocaleString("pt-PT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "";
-    const resume = confirm(`Existe um rascunho guardado desta análise (${savedAt}) para o sistema "${sys?sys.name:sysId}".\n\nRetomar a partir do ponto onde ficou?`);
+    const resume = await confirmDialog(`Existe um rascunho guardado (${savedAt}) para "${sys?sys.name:sysId}".`,{title:"Retomar análise",sub:"Retomar a partir do ponto onde ficou?",okLabel:"Retomar",danger:false});
     document.getElementById("wizModal").classList.add("open");
     if(resume){ restoreFromDraft(draft); return; }
     else { clearDraft(); }
@@ -2551,7 +2618,7 @@ function lwGo(n){
 // ── Step 0: Metadata ──────────────────────────────────────────────
 function lwNextMeta(){
   const name = document.getElementById("lw-name").value.trim();
-  if(!name){alert("O nome da biblioteca é obrigatório.");return;}
+  if(!name){toast("O nome da biblioteca é obrigatório.","error");return;}
   lw.meta.name = name;
   lw.meta.desc = document.getElementById("lw-desc").value.trim();
   lw.meta.framework = document.getElementById("lw-framework").value.trim();
@@ -2602,8 +2669,8 @@ function lwSaveRisk(){
   closeLwRiskModal();
   renderLwRisks();
 }
-function lwDelRisk(idx){
-  if(!confirm("Remover este risco?"))return;
+async function lwDelRisk(idx){
+  if(!await confirmDialog("Remover este risco da biblioteca?",{title:"Remover risco",okLabel:"Remover",danger:true}))return;
   lw.risks.splice(idx,1);
   renderLwRisks();
 }
@@ -2616,7 +2683,7 @@ function lwAddRisk(){
 }
 function lwNextRisks(){
   const unnamed = lw.risks.filter(r=>!r.name.trim());
-  if(unnamed.length){alert(`${unnamed.length} risco(s) sem nome. Preenche todos os nomes antes de avançar.`);return;}
+  if(unnamed.length){toast(`${unnamed.length} risco(s) sem nome. Preenche todos os nomes antes de avançar.`,"error");return;}
   lwGo(2);
 }
 
@@ -2690,7 +2757,7 @@ function closeLwCtrlModal(){document.getElementById("lwCtrlModal").classList.rem
 function lwSaveCtrl(){
   const id = document.getElementById("lwc-id").value.trim();
   const name = document.getElementById("lwc-name").value.trim();
-  if(!name){alert("O nome do controlo é obrigatório.");return;}
+  if(!name){toast("O nome do controlo é obrigatório.","error");return;}
   const c = {id:id||"C-?",name,desc:document.getElementById("lwc-desc").value.trim(),type:document.getElementById("lwc-type").value,ref:document.getElementById("lwc-ref").value.trim()};
   const r = lw.risks[lwCtrlRiskIdx];
   if(lw.editCtrlIdx!=null && lw.editCtrlRiskIdx===lwCtrlRiskIdx){
@@ -2702,8 +2769,8 @@ function lwSaveCtrl(){
   closeLwCtrlModal();
   renderLwCtrlList();
 }
-function lwDelCtrl(ridx,cidx){
-  if(!confirm("Remover este controlo?"))return;
+async function lwDelCtrl(ridx,cidx){
+  if(!await confirmDialog("Remover este controlo da biblioteca?",{title:"Remover controlo",okLabel:"Remover",danger:true}))return;
   lw.risks[ridx].ctrls.splice(cidx,1);
   renderLwCtrlList();
 }
@@ -2755,7 +2822,7 @@ function renderLwReview(){
 
 function lwSaveLib(){
   const m = lw.meta;
-  if(allLibNames().includes(m.name)){alert(`Já existe uma biblioteca com o nome "${m.name}". Escolhe um nome diferente.`);return;}
+  if(allLibNames().includes(m.name)){toast(`Já existe uma biblioteca com o nome "${m.name}". Escolhe um nome diferente.`,"error");return;}
   // Build lib object — convert inline controls to ctrls array of IDs (we store full ctrl objects separately)
   const libCtrlMap = {}; // id -> ctrl obj
   lw.risks.forEach(r=>r.ctrls.forEach(c=>libCtrlMap[c.id]=c));
@@ -2777,7 +2844,7 @@ function lwSaveLib(){
   closeLibWiz();
   renderLibraries();
   // also rebuild lib selector in risk modal
-  persistAppData();alert(`Biblioteca "${m.name}" criada com ${lw.risks.length} riscos.`);
+  persistAppData();toast(`Biblioteca "${m.name}" criada com ${lw.risks.length} riscos.`,"success");
 }
 
 // ── Updated render to support custom lib controls ─────────────────
@@ -2862,8 +2929,8 @@ function libCtrlEditBtn(btn){openLibCtrlEdit(btn.dataset.lib,btn.dataset.risk,bt
 function libCtrlDelBtn(btn){deleteLibCtrl(btn.dataset.lib,btn.dataset.ctrl);}
 function libCtrlAddBtn(btn){openLibCtrlAdd(btn.dataset.lib,btn.dataset.risk);}
 
-function delCustomLib(name){
-  if(!confirm(`Remover a biblioteca "${name}"? Esta ação não pode ser desfeita.`))return;
+async function delCustomLib(name){
+  if(!await confirmDialog(`Remover a biblioteca "${name}"?`,{title:"Remover biblioteca",sub:"Esta ação não pode ser desfeita.",okLabel:"Remover",danger:true}))return;
   delete customLibs[name];
   activeLib = LIB_NAMES[0];
   renderLibraries();
@@ -3123,7 +3190,7 @@ let _editUpdates=[];
 function removeUpdate(idx){_editUpdates.splice(idx,1);renderPlanUpdates(_editUpdates);}
 function addUpdate(){
   const txt=document.getElementById("pm-update-text").value.trim();
-  if(!txt){alert("Escreve uma atualização.");return;}
+  if(!txt){toast("Escreve uma atualização.","error");return;}
   _editUpdates.push({date:new Date().toISOString().slice(0,10),author:"",text:txt});
   renderPlanUpdates(_editUpdates);
   document.getElementById("pm-update-text").value="";
@@ -3139,16 +3206,16 @@ function closePlanModal(){
 
 function savePlan(){
   const riskVal=document.getElementById("pm-risk").value;
-  if(!riskVal){alert("Seleciona um risco.");return;}
+  if(!riskVal){toast("Seleciona um risco.","error");return;}
 
   let ctrlId="", ctrlName="";
   if(ctrlMode==='free'){
     ctrlId=document.getElementById("pm-ctrl-free-id").value.trim()||"LIVRE";
     ctrlName=document.getElementById("pm-ctrl-free-name").value.trim();
-    if(!ctrlName){alert("Indica o nome do controlo livre.");return;}
+    if(!ctrlName){toast("Indica o nome do controlo livre.","error");return;}
   } else {
     const ctrlVal=document.getElementById("pm-ctrl").value;
-    if(!ctrlVal){alert("Seleciona um controlo.");return;}
+    if(!ctrlVal){toast("Seleciona um controlo.","error");return;}
     [ctrlId,ctrlName]=ctrlVal.split("|");
   }
 
@@ -3187,8 +3254,8 @@ function savePlan(){
   persistAppData();renderPlans();
 }
 
-function deletePlan(id){
-  if(!confirm("Remover este plano de mitigação?"))return;
+async function deletePlan(id){
+  if(!await confirmDialog("Remover este plano de mitigação?",{title:"Remover plano",okLabel:"Remover",danger:true}))return;
   mitigationPlans=mitigationPlans.filter(p=>p.id!==id);
   persistAppData();renderPlans();
 }
@@ -3343,8 +3410,8 @@ function updateHeaderUser(){
   if(logoutBtn) logoutBtn.style.display=authModeEnabled?"inline-block":"none";
 }
 
-function logoutUser(){
-  if(!confirm(`Terminar sessão de "${currentUser.name}"?`)) return;
+async function logoutUser(){
+  if(!await confirmDialog(`Terminar sessão de "${currentUser.name}"?`,{title:"Terminar sessão",okLabel:"Sair",danger:false})) return;
   currentUser=null;
   updateHeaderUser();
   applyNavAccess();
@@ -3385,14 +3452,14 @@ function closeUserModal(){document.getElementById("userModal").classList.remove(
 function saveUser(){
   const name=document.getElementById("uf-name").value.trim();
   const username=document.getElementById("uf-username").value.trim().toLowerCase();
-  if(!name){alert("O nome é obrigatório.");return;}
-  if(!username){alert("O username é obrigatório.");return;}
+  if(!name){toast("O nome é obrigatório.","error");return;}
+  if(!username){toast("O username é obrigatório.","error");return;}
   // Check username uniqueness
   const dup=appUsers.find(u=>u.username===username&&u.id!==editUserId);
-  if(dup){alert(`O username "${username}" já existe.`);return;}
+  if(dup){toast(`O username "${username}" já existe.`,"error");return;}
   const pwd1=document.getElementById("uf-pwd").value;
   const pwd2=document.getElementById("uf-pwd2").value;
-  if(pwd1&&pwd1!==pwd2){alert("As passwords não coincidem.");return;}
+  if(pwd1&&pwd1!==pwd2){toast("As passwords não coincidem.","error");return;}
 
   if(editUserId){
     const u=appUsers.find(x=>x.id===editUserId);
@@ -3425,9 +3492,9 @@ function saveUser(){
   renderUsers();
 }
 
-function deleteUser(id){
-  if(currentUser&&currentUser.id===id){alert("Não podes remover o utilizador com sessão ativa.");return;}
-  if(!confirm("Remover este utilizador?"))return;
+async function deleteUser(id){
+  if(currentUser&&currentUser.id===id){toast("Não podes remover o utilizador com sessão ativa.","error");return;}
+  if(!await confirmDialog("Remover este utilizador?",{title:"Remover utilizador",okLabel:"Remover",danger:true}))return;
   appUsers=appUsers.filter(u=>u.id!==id);
   persistAppData();
   renderUsers();
