@@ -320,7 +320,20 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
     <div class="spacer"></div>
     <button class="btn btn-primary" onclick="openSysAdd()">+ Novo sistema</button>
   </div>
-  <div class="sys-grid" id="sysGrid"></div>
+  <div class="twrap">
+    <table><thead><tr>
+      <th>Nome</th>
+      <th>Tipo</th>
+      <th>Ambiente</th>
+      <th>Classificação</th>
+      <th style="font-size:11px">C / I / A</th>
+      <th>Criticidade</th>
+      <th>Proprietário</th>
+      <th style="text-align:center">Análises</th>
+      <th style="text-align:center">Riscos</th>
+      <th></th>
+    </tr></thead><tbody id="sysGrid"></tbody></table>
+  </div>
   <div id="sysEmpty" class="empty" style="display:none">Sem sistemas registados.</div>
 </div>
 
@@ -1346,27 +1359,35 @@ function pickCIA(dim,val,el,cid){
 function renderSystems(){
   const q=(document.getElementById("sysSearch").value||"").toLowerCase();
   const ft=document.getElementById("sysFilter").value;
-  const f=systems.filter(s=>(!q||s.name.toLowerCase().includes(q)||s.owner.toLowerCase().includes(q))&&(!ft||s.type===ft));
-  const g=document.getElementById("sysGrid"),em=document.getElementById("sysEmpty");
-  if(!f.length){g.innerHTML="";em.style.display="block";return;}
+  const f=systems.filter(s=>(!q||s.name.toLowerCase().includes(q)||(s.owner||"").toLowerCase().includes(q))&&(!ft||s.type===ft));
+  const tb=document.getElementById("sysGrid"),em=document.getElementById("sysEmpty");
+  if(!f.length){tb.innerHTML="";em.style.display="block";return;}
   em.style.display="none";
-  g.innerHTML=f.map(s=>{
+  tb.innerHTML=f.map(s=>{
     const crit=sysCrit(s);
     const rc=risks.filter(r=>r.system===s.id).length;
     const ac=analyses.filter(a=>a.system===s.id).length;
-    return`<div class="sys-card">
-      <div class="sys-top"><div><div class="sys-name">${s.name}</div><div class="sys-sub">${s.type} · ${s.env}</div></div><span class="${bc(crit)}">${crit}</span></div>
-      <div class="sys-desc">${s.desc||"—"}</div>
-      <div>${ciaRow("Confidencialidade",s.cia.C)}${ciaRow("Integridade",s.cia.I)}${ciaRow("Disponibilidade",s.cia.A)}</div>
-      <div style="font-size:12px;color:var(--muted)"><strong>Dados:</strong> ${(s.data||[]).join(", ")||"—"}<br><strong>Proprietário:</strong> ${s.owner||"—"}${s.classification?`<br><strong>Classificação:</strong> <span class="badge ${classColor(s.classification)}" style="font-size:10px;vertical-align:middle">${s.classification}</span>`:""}</div>
-      <div class="sys-footer">
-        <span style="font-size:12px;color:var(--muted)">${ac} análise${ac!==1?"s":""} · ${rc} risco${rc!==1?"s":""}</span>
-        <div class="spacer"></div>
-        <button class="btn btn-sm btn-accent" onclick="startWiz('${s.id}')">▶ Analisar${hasDraftForSystem(s.id)?' 📝':''}</button>
+    const ciaAbbr=v=>({"Reduzido":"R","Médio":"M","Alto":"A","Muito Alto":"MA"})[v]||"—";
+    const ciaStr=`${ciaAbbr(s.cia?.C)} ${ciaAbbr(s.cia?.I)} ${ciaAbbr(s.cia?.A)}`;
+    return`<tr>
+      <td>
+        <div style="font-weight:700;font-size:13px">${s.name}</div>
+        ${s.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${s.desc}</div>`:""}
+      </td>
+      <td style="font-size:12px;white-space:nowrap">${s.type}</td>
+      <td style="font-size:12px">${s.env||"—"}</td>
+      <td>${s.classification?`<span class="badge ${classColor(s.classification)}" style="font-size:10px">${s.classification}</span>`:`<span style="font-size:11px;color:var(--muted)">—</span>`}</td>
+      <td style="font-size:12px;white-space:nowrap;color:var(--muted)">${ciaStr}</td>
+      <td><span class="${bc(crit)}">${crit}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${s.owner||"—"}</td>
+      <td style="text-align:center;font-size:13px;font-weight:600">${ac}</td>
+      <td style="text-align:center;font-size:13px;font-weight:600">${rc}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm btn-accent" onclick="startWiz('${s.id}')" title="Iniciar análise de risco">▶${hasDraftForSystem(s.id)?' 📝':''}</button>
         <button class="btn btn-sm" onclick="openSysEdit('${s.id}')">Editar</button>
         <button class="btn btn-sm btn-danger" onclick="delSys('${s.id}')">✕</button>
-      </div>
-    </div>`;
+      </td>
+    </tr>`;
   }).join("");
 }
 
