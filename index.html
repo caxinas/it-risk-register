@@ -228,6 +228,24 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
 .empty{text-align:center;padding:32px;color:var(--muted);}
 .tag{display:inline-block;padding:1px 7px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--muted);margin:1px;}
 .divider{height:1px;background:var(--border);margin:16px 0;}
+/* ── Login screen ── */
+#loginScreen{position:fixed;inset:0;background:#1d3461;display:flex;align-items:center;justify-content:center;z-index:99999;}
+.login-box{background:#fff;border-radius:16px;padding:40px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo h1{font-size:22px;font-weight:700;color:#1d3461;margin-bottom:4px;}
+.login-logo p{font-size:13px;color:#6b7280;}
+.login-field{margin-bottom:16px;}
+.login-field label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
+.login-field input{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 14px;font-size:14px;font-family:inherit;outline:none;transition:border-color .15s;}
+.login-field input:focus{border-color:#1d3461;box-shadow:0 0 0 3px rgba(29,52,97,.1);}
+.login-err{color:#dc2626;font-size:12px;margin-top:6px;display:none;}
+.login-btn{width:100%;background:#1d3461;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s;margin-top:8px;}
+.login-btn:hover{opacity:.88;}
+.login-users{margin-top:20px;border-top:1px solid #e5e7eb;padding-top:16px;}
+.login-user-btn{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;cursor:pointer;margin-bottom:8px;font-family:inherit;transition:background .15s;}
+.login-user-btn:hover{background:#f3f4f6;border-color:#d1d5db;}
+.login-user-avatar{width:32px;height:32px;border-radius:50%;background:#1d3461;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+
 /* ── Toast ── */
 #toastContainer{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none;}
 .toast{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--r);font-size:13px;font-weight:500;max-width:360px;box-shadow:0 4px 16px rgba(0,0,0,.12);pointer-events:all;animation:toastIn .2s ease;transition:opacity .3s,transform .3s;}
@@ -245,6 +263,32 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
 </head>
 <body>
 <div id="toastContainer"></div>
+
+<!-- ═══ LOGIN SCREEN ═════════════════════════════════════════════════ -->
+<div id="loginScreen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>IT Risk Register</h1>
+      <p>Gestão de Risco de Segurança da Informação</p>
+    </div>
+    <div id="loginFormWrap">
+      <div class="login-field">
+        <label>Username</label>
+        <input id="loginUsername" type="text" placeholder="Introduz o teu username" autocomplete="username" onkeydown="if(event.key==='Enter')loginNext()">
+      </div>
+      <div class="login-field" id="loginPwdField" style="display:none">
+        <label>Password</label>
+        <input id="loginPassword" type="password" placeholder="Introduz a tua password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <div class="login-err" id="loginErr">Username ou password incorretos.</div>
+      </div>
+      <button class="login-btn" id="loginBtn" onclick="loginNext()">Continuar →</button>
+    </div>
+    <div id="loginUserList" style="display:none">
+      <p style="font-size:12px;color:#6b7280;margin-bottom:12px">Seleciona o teu utilizador:</p>
+      <div id="loginUserBtns"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ MODAL: CONFIRMAÇÃO ════════════════════════════════════════════ -->
 <div class="overlay" id="confirmModal" style="display:none">
@@ -3432,9 +3476,10 @@ function renderUsers(){
 
 function toggleAuthMode(){
   authModeEnabled=!authModeEnabled;
-  updateHeaderUser(); // refresh logout button visibility
+  updateHeaderUser();
   renderUsers();
   persistAppData();
+  if(authModeEnabled && !currentUser) showLoginScreen();
 }
 
 // ── Nav visibility ────────────────────────────────────────────────
@@ -3469,16 +3514,112 @@ function updateHeaderUser(){
   if(logoutBtn) logoutBtn.style.display=authModeEnabled?"inline-block":"none";
 }
 
+// ── Login screen ──────────────────────────────────────────────────
+let loginPendingUser = null;
+
+function showLoginScreen(){
+  const active=appUsers.filter(u=>u.status==="active");
+  loginPendingUser=null;
+  document.getElementById("loginUsername").value="";
+  document.getElementById("loginPassword").value="";
+  document.getElementById("loginPwdField").style.display="none";
+  document.getElementById("loginErr").style.display="none";
+  document.getElementById("loginBtn").textContent="Continuar →";
+  document.getElementById("loginBtn").onclick=loginNext;
+
+  if(!authModeEnabled && active.length){
+    // No auth — show user list directly
+    document.getElementById("loginFormWrap").style.display="none";
+    document.getElementById("loginUserList").style.display="block";
+    document.getElementById("loginUserBtns").innerHTML=active.map(u=>{
+      const role=ROLES[u.role]||ROLES.readonly;
+      return`<button class="login-user-btn" onclick="loginAsUser('${u.id}')">
+        <div class="login-user-avatar">${u.name.charAt(0).toUpperCase()}</div>
+        <div style="text-align:left">
+          <div style="font-weight:600;font-size:13px">${u.name}</div>
+          <div style="font-size:11px;color:#6b7280">${role.label}</div>
+        </div>
+      </button>`;
+    }).join("");
+  } else {
+    document.getElementById("loginFormWrap").style.display="block";
+    document.getElementById("loginUserList").style.display="none";
+  }
+
+  document.getElementById("loginScreen").style.display="flex";
+  document.querySelector(".app").style.visibility="hidden";
+  setTimeout(()=>{ const el=document.getElementById(authModeEnabled?"loginUsername":"loginUsername"); if(el) el.focus(); },100);
+}
+
+function hideLoginScreen(){
+  document.getElementById("loginScreen").style.display="none";
+  document.querySelector(".app").style.visibility="visible";
+}
+
+function loginNext(){
+  const username=document.getElementById("loginUsername").value.trim().toLowerCase();
+  if(!username){ toast("Introduz o teu username.","error"); return; }
+  const u=appUsers.find(x=>x.username===username&&x.status==="active");
+  if(!u){ document.getElementById("loginErr").style.display="block"; document.getElementById("loginErr").textContent="Username não encontrado."; return; }
+  loginPendingUser=u;
+  if(authModeEnabled&&u.pwd){
+    document.getElementById("loginPwdField").style.display="block";
+    document.getElementById("loginErr").style.display="none";
+    document.getElementById("loginBtn").textContent="Entrar →";
+    document.getElementById("loginBtn").onclick=doLogin;
+    document.getElementById("loginPassword").focus();
+  } else {
+    loginAsUser(u.id);
+  }
+}
+
+function doLogin(){
+  if(!loginPendingUser) return;
+  const pwd=document.getElementById("loginPassword").value;
+  if(simpleHash(pwd)!==loginPendingUser.pwd){
+    document.getElementById("loginErr").style.display="block";
+    document.getElementById("loginErr").textContent="Password incorreta.";
+    document.getElementById("loginPassword").value="";
+    document.getElementById("loginPassword").focus();
+    return;
+  }
+  loginAsUser(loginPendingUser.id);
+}
+
+function loginAsUser(id){
+  const u=appUsers.find(x=>x.id===id);if(!u)return;
+  u.lastAccess=new Date().toISOString().slice(0,10);
+  currentUser={...u};
+  persistAppData();
+  updateHeaderUser();
+  applyNavAccess();
+  hideLoginScreen();
+  const dash=document.querySelector("#mainNav button[data-tab='dashboard']");
+  if(dash) gotoTab("dashboard",dash);
+  renderUsers();
+  toast(`Bem-vindo, ${u.name}.`,"success");
+}
+
+function checkLoginRequired(){
+  // Show login screen if auth is enabled and no user is logged in
+  if(authModeEnabled && !currentUser){
+    showLoginScreen();
+    return true;
+  }
+  // Show login screen if no users exist yet (first run, no auth) — skip
+  if(!authModeEnabled && !currentUser && appUsers.length){
+    showLoginScreen();
+    return true;
+  }
+  return false;
+}
+
 async function logoutUser(){
   if(!await confirmDialog(`Terminar sessão de "${currentUser.name}"?`,{title:"Terminar sessão",okLabel:"Sair",danger:false})) return;
   currentUser=null;
   updateHeaderUser();
   applyNavAccess();
-  // Redirect to dashboard
-  const dash=document.querySelector("#mainNav button[data-tab='dashboard']");
-  if(dash) gotoTab("dashboard",dash);
-  // Open user switch so next user can log in
-  openUserSwitch();
+  showLoginScreen();
 }
 
 // ── User modal (add/edit) ─────────────────────────────────────────
@@ -3633,12 +3774,13 @@ migrateCustomLibs();
 // Set default user to first active admin if none selected
 if(!currentUser){
   const firstAdmin=appUsers.find(u=>u.role==="admin"&&u.status==="active");
-  if(firstAdmin){ currentUser={...firstAdmin}; }
+  if(firstAdmin && !authModeEnabled){ currentUser={...firstAdmin}; }
 }
 updateHeaderUser();
 applyNavAccess();
 renderDash();renderSystems();renderAnalyses();renderTable();
 renderLibraries();renderControls();renderMatrix();syncSysFilter();renderPlans();renderUsers();
+checkLoginRequired();
 </script>
 
 <!-- ═══ MODAL: LIBRARY WIZARD ══════════════════════════════════════ -->
