@@ -1322,10 +1322,7 @@ function renderDash(){
   document.getElementById("metrics").innerHTML=`
     <div class="metric"><div class="mlabel">Sistemas</div><div class="mvalue" style="color:var(--accent)">${systems.length}</div></div>
     <div class="metric"><div class="mlabel">Análises</div><div class="mvalue" style="color:#374151">${analyses.length}</div></div>
-    <div class="metric"><div class="mlabel">Total riscos</div><div class="mvalue" style="color:#374151">${tot}</div></div>
-    <div class="metric"><div class="mlabel">Críticos</div><div class="mvalue" style="color:var(--crit)">${crit}</div></div>
-    <div class="metric"><div class="mlabel">Altos</div><div class="mvalue" style="color:var(--high)">${high}</div></div>
-    <div class="metric"><div class="mlabel">Em aberto</div><div class="mvalue" style="color:${open?"var(--high)":"var(--med)"}">${open}</div></div>`;
+    <div class="metric"><div class="mlabel">Total riscos</div><div class="mvalue" style="color:#374151">${tot}</div></div>`;
 
   const lc={Crítico:0,Alto:0,Médio:0,Baixo:0};
   risks.forEach(r=>lc[lvl(r.prob*r.impact)]++);
