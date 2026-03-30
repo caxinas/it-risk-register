@@ -801,9 +801,97 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
   </div>
 </div>
 
+<!-- CLASSIFICAÇÃO DA INFORMAÇÃO -->
+<div class="card">
+  <div class="ctitle">9. Classificação da informação</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Cada sistema pode ser classificado quanto à sensibilidade da informação que processa ou armazena. Esta classificação é independente do CIA e reflecte o nível de protecção exigido.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="background:var(--bg)">
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Nível</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Descrição</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Exemplos</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-mitigado">Pública</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Informação sem restrições, disponível a qualquer pessoa</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Site público, press releases, documentação aberta</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-medio">Interna</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Uso interno, não deve ser partilhada externamente</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Procedimentos internos, comunicações de equipa</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-alto">Restrito</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Acesso limitado a grupos específicos dentro da organização</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Dados financeiros, RH, planos estratégicos</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-critico">Confidencial</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Informação sensível com impacto significativo se divulgada</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Dados pessoais (RGPD), segredos comerciais, credenciais</td></tr>
+      <tr><td style="padding:8px 10px"><span class="badge b-muitoalto">Secreto</span></td><td style="padding:8px 10px;color:var(--muted)">Máxima sensibilidade — divulgação causa dano grave e irreversível</td><td style="padding:8px 10px;color:var(--muted)">Chaves criptográficas, dados regulatórios críticos</td></tr>
+    </tbody>
+  </table>
 </div>
 
-</main>
+<!-- GESTÃO DE UTILIZADORES -->
+<div class="card">
+  <div class="ctitle">10. Gestão de utilizadores e perfis</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">A aplicação suporta três perfis de acesso. O controlo é feito por ocultação de abas — cada perfil vê apenas as funcionalidades que lhe são permitidas.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px">
+    <thead><tr style="background:var(--bg)">
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Perfil</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Abas visíveis</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Acções permitidas</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-muitoalto">Administrador</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Todas (incluindo Utilizadores e Logs)</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Acesso total a todas as funcionalidades</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span class="badge b-alto">Gestor de Risco</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Dashboard, Sistemas, Análises, Riscos, Matriz, Planos, Ajuda</td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Gerir sistemas, realizar análises, gerir riscos e planos</td></tr>
+      <tr><td style="padding:8px 10px"><span class="badge b-reduzido">Apenas Leitura</span></td><td style="padding:8px 10px;color:var(--muted)">Dashboard, Riscos, Matriz, Ajuda</td><td style="padding:8px 10px;color:var(--muted)">Visualização apenas, sem criação ou edição</td></tr>
+    </tbody>
+  </table>
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px;font-size:12px;color:var(--muted)">
+    <strong>Autenticação por password:</strong> activada na aba Utilizadores com o toggle "Autenticação com password". Quando activa, ao fazer logout aparece um ecrã de login que bloqueia o acesso ao conteúdo. As passwords são guardadas com hash local — adequado para uso interno. Para segurança reforçada, utiliza um servidor com autenticação real.
+  </div>
+</div>
+
+<!-- LOGS DE ACTIVIDADE -->
+<div class="card">
+  <div class="ctitle">11. Registo de actividade (Logs)</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">A aba <strong>Logs</strong> — visível apenas para Administradores — regista automaticamente todas as acções relevantes na aplicação.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px">
+    <thead><tr style="background:var(--bg)">
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Categoria</th>
+      <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Eventos registados</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span style="background:#1d346118;color:#1d3461;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Autenticação</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Login e logout de utilizadores</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span style="background:#0369a118;color:#0369a1;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Sistemas</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Criação, edição e remoção de sistemas</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span style="background:#7c3aed18;color:#7c3aed;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Análises</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Registo e remoção de análises de risco</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span style="background:#dc262618;color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Riscos</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Criação, edição e remoção de riscos</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span style="background:#d9770618;color:#d97706;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Planos</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Criação, edição e remoção de planos de mitigação</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span style="background:#065f4618;color:#065f46;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Bibliotecas</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Criação e remoção de bibliotecas e controlos</td></tr>
+      <tr><td style="padding:8px 10px;border-bottom:1px solid var(--border)"><span style="background:#37415118;color:#374151;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Utilizadores</span></td><td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Criação, edição e remoção de utilizadores</td></tr>
+      <tr><td style="padding:8px 10px"><span style="background:#6b728018;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Dados</span></td><td style="padding:8px 10px;color:var(--muted)">Exportação e importação de dados JSON</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:var(--muted)">Os logs são persistidos no <code>localStorage</code> até um máximo de 500 entradas. As mais antigas são descartadas automaticamente. Cada entrada inclui data/hora, utilizador, categoria e referência do objecto afectado.</p>
+</div>
+
+<!-- BIBLIOTECAS E CONTROLOS -->
+<div class="card">
+  <div class="ctitle">12. Bibliotecas e controlos</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Cada biblioteca é composta por riscos, e cada risco tem os seus próprios controlos de segurança associados. Os controlos são únicos por risco — não são partilhados entre riscos diferentes.</p>
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;font-family:monospace;font-size:12px;margin-bottom:14px">
+    Biblioteca → Risco → Controlos[ {id, nome, tipo, descrição, referência} ]
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:10px">As cinco bibliotecas nativas (OWASP Web, OWASP API, CIS Top 18, ISO 27001, NIST SP 800-53) são editáveis — ao editar um controlo de uma biblioteca nativa, a app cria automaticamente uma cópia editável dessa biblioteca. É possível criar bibliotecas completamente personalizadas através da aba <strong>Bibliotecas → + Nova biblioteca</strong>.</p>
+  <p style="font-size:13px;color:var(--muted)">A aba <strong>Controlos</strong> apresenta uma vista consolidada de todos os controlos de todas as bibliotecas, com filtros por biblioteca e tipo (Preventivo, Detetivo, Resposta).</p>
+</div>
+
+<!-- ANÁLISES E MATRIZES -->
+<div class="card">
+  <div class="ctitle">13. Análises e matrizes de risco</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Cada análise fica associada a um sistema e é <strong>imutável após ser registada</strong> (estado Concluída). Para actualizar a avaliação de risco de um sistema, cria uma nova análise — o histórico de análises anteriores é preservado.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px">Matriz inerente (passo 5)</div>
+      <div style="font-size:12px;color:var(--muted)">Posição dos riscos <em>antes</em> de aplicar qualquer controlo. Eixo Y = Impacto, Eixo X = Probabilidade.</div>
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px">Matriz residual (passo 8)</div>
+      <div style="font-size:12px;color:var(--muted)">Posição dos riscos <em>após</em> aplicar os controlos. Permite visualizar o efeito da mitigação no portfólio de risco.</div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:var(--muted)">A aba <strong>Matriz</strong> mostra a matriz global de todos os riscos registados (inerente). Clica numa célula para ver os riscos nessa posição.</p>
+</div>
 </div>
 
 <!-- ═══ MODAL: VISUALIZAR SISTEMA ════════════════════════════════════ -->
