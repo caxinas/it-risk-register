@@ -1206,7 +1206,34 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
     <div id="wPlansList"></div>
     <div class="wnav" style="margin-top:16px">
       <button class="btn" onclick="wBack(7)">← Anterior</button>
-      <button class="btn btn-primary" onclick="wSave()">Registar análise ✓</button>
+      <button class="btn btn-primary" onclick="wizGo(8)">Seguinte — Relatório →</button>
+    </div>
+  </div>
+
+  <!-- Step 9: Report -->
+  <div class="wpanel" id="wp8">
+    <div class="wq">Relatório de risco residual</div>
+    <div class="wsub" id="wp8sub">Redige o sumário executivo e gera o relatório completo da análise.</div>
+
+    <div style="margin-bottom:20px">
+      <span class="slabel">Sumário executivo</span>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Descreve o contexto, as principais conclusões e as recomendações desta análise de risco. Este texto será incluído no relatório gerado.</p>
+      <textarea id="wizExecSummary" rows="8" style="width:100%;border:1px solid var(--border);border-radius:var(--r);padding:12px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;line-height:1.6" placeholder="Ex: A presente análise de risco foi conduzida ao sistema Portal de Clientes com base nas frameworks OWASP Top 10 Web e ISO 27001. Foram identificados 10 riscos, dos quais 2 são de nível Crítico e 3 de nível Alto. Após avaliação dos controlos implementados, o risco residual máximo situa-se em nível Alto, com 3 riscos auto-mitigados. Recomenda-se a implementação prioritária dos planos de mitigação associados..."></textarea>
+    </div>
+
+    <div id="wp8Preview" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:20px;font-size:12px;color:var(--muted)">
+      Clica em "Abrir relatório HTML" para pré-visualizar o relatório completo numa nova janela.
+    </div>
+
+    <div class="wnav" style="flex-direction:column;gap:12px;align-items:stretch">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-accent" style="flex:1" onclick="wizOpenHtmlReport()">🔗 Abrir relatório HTML</button>
+        <button class="btn" style="flex:1" onclick="wizExportJsonReport()">⬇ Copiar relatório</button>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn" onclick="wBack(8)">← Anterior</button>
+        <button class="btn btn-primary" style="flex:1" onclick="wSave()">✓ Registar análise</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2292,7 +2319,7 @@ function showMxDetail(p,i,el){
 // ════════════════════════════════════════════════════════════════════
 // WIZARD
 // ════════════════════════════════════════════════════════════════════
-const WIZ_STEPS = ["1. CIA","2. Bibliotecas","3. Riscos","4. Avaliação","5. Matriz inerente","6. Controlos","7. Resumo","8. Matriz residual"];
+const WIZ_STEPS = ["1. CIA","2. Bibliotecas","3. Riscos","4. Avaliação","5. Matriz inerente","6. Controlos","7. Resumo","8. Matriz residual","9. Relatório"];
 let wizStep = 0;
 let wizSelectedLibs = [];
 let wizExcluded = new Set();
@@ -2312,6 +2339,7 @@ function wizGo(n){
   if(n===5){wizCtrlIdx=0;renderCtrlEffStep();}
   if(n===6) renderFinalSummary();
   if(n===7){renderResidualMatrix();renderWizPlans();}
+  if(n===8) renderWizReport();
   // Auto-save draft on every step (except step 0 where we have no data yet)
   if(n>0 && wizIRItems.length>0) saveDraft();
   else if(n>1) saveDraft();
@@ -2333,7 +2361,258 @@ function wNext(step){
 }
 function wBack(step){
   if(step===3) saveCurrentIR();
-  wizGo(step-1);
+  if(step===8) wizGo(7); else wizGo(step-1);
+}
+
+// Step 9: Report
+function renderWizReport(){
+  const sys=sysById(wizSysId);
+  const aRisks=[...wizIRItems].sort((a,b)=>b.prob*b.impact-a.prob*a.impact);
+  const critCount=aRisks.filter(r=>lvl(r.prob*r.impact)==="Crítico").length;
+  const highCount=aRisks.filter(r=>lvl(r.prob*r.impact)==="Alto").length;
+  const autoMitigCount=aRisks.filter(r=>calcResidual(r).autoMitigated).length;
+  const plans=wizPendingPlans;
+  document.getElementById("wp8sub").textContent=
+    `Sistema: ${sys?sys.name:"—"} · ${wizSelectedLibs.join(", ")} · ${aRisks.length} riscos · ${plans.length} plano${plans.length!==1?"s":""}`;
+  document.getElementById("wp8Preview").innerHTML=
+    `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div class="metric-mini"><div class="mv">${aRisks.length}</div><div class="ml">Riscos</div></div>
+      <div class="metric-mini"><div class="mv" style="color:var(--crit)">${critCount}</div><div class="ml">Críticos</div></div>
+      <div class="metric-mini"><div class="mv" style="color:var(--high)">${highCount}</div><div class="ml">Altos</div></div>
+      <div class="metric-mini"><div class="mv" style="color:var(--med)">${autoMitigCount}</div><div class="ml">Auto-mitigados</div></div>
+      <div class="metric-mini"><div class="mv">${plans.length}</div><div class="ml">Planos</div></div>
+    </div>
+    <div style="font-size:12px;color:var(--muted)">O relatório inclui: sumário executivo · informação do sistema · classificação CIA · riscos com scores inerentes e residuais · controlos avaliados · matriz de risco · planos de mitigação.</div>`;
+}
+
+function buildWizReportHtml(){
+  const sys=sysById(wizSysId);
+  const execSummary=(document.getElementById("wizExecSummary")?.value||"").trim();
+  const aRisks=[...wizIRItems].sort((a,b)=>b.prob*b.impact-a.prob*a.impact);
+  const today=new Date().toLocaleDateString("pt-PT",{day:"2-digit",month:"long",year:"numeric"});
+  const levelColor={Crítico:"#7f1d1d",Alto:"#92400e",Médio:"#166534",Baixo:"#1e40af"};
+  const levelBg={Crítico:"#fef2f2",Alto:"#fffbeb",Médio:"#f0fdf4",Baixo:"#eff6ff"};
+  const statusColor={Aberto:"#9a3412",Mitigado:"#166534",Aceite:"#1e40af",Transferido:"#5b21b6"};
+  const statusBg={Aberto:"#fff7ed",Mitigado:"#f0fdf4",Aceite:"#eff6ff",Transferido:"#f5f3ff"};
+  const critCount=aRisks.filter(r=>lvl(r.prob*r.impact)==="Crítico").length;
+  const highCount=aRisks.filter(r=>lvl(r.prob*r.impact)==="Alto").length;
+  const autoMitigCount=aRisks.filter(r=>calcResidual(r).autoMitigated).length;
+  const plans=wizPendingPlans;
+
+  // Matrix cells helper
+  const matrixHtml=(label,items,getPos)=>{
+    let cells="";
+    for(let i=5;i>=1;i--) for(let p=1;p<=5;p++){
+      const s=p*i; const li=lvl(s);
+      const cnt=items.filter(x=>{const pos=getPos(x);return pos.p===p&&pos.i===i;}).length;
+      const bg=s>=17?"#7f1d1d":s>=10?"#fef2f2":s>=4?"#fffbeb":"#f0fdf4";
+      const col=s>=17?"#fff":s>=10?"#7f1d1d":s>=4?"#92400e":"#166534";
+      cells+=`<div style="width:36px;height:36px;background:${bg};border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${col}">${cnt||""}</div>`;
+    }
+    return`<div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#1d3461">${label}</div>
+      <div style="display:flex;gap:6px">
+        <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:20px;align-items:center">
+          ${[5,4,3,2,1].map(n=>`<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#6b7280;font-weight:600">${n}</div>`).join("")}
+          <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;color:#9ca3af;margin-top:4px">Impacto</div>
+        </div>
+        <div>
+          <div style="display:grid;grid-template-columns:repeat(5,36px);gap:3px">${cells}</div>
+          <div style="display:flex;gap:3px;margin-top:4px">${[1,2,3,4,5].map(n=>`<div style="width:36px;text-align:center;font-size:11px;color:#6b7280;font-weight:600">${n}</div>`).join("")}</div>
+          <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:2px">Probabilidade</div>
+        </div>
+      </div>
+    </div>`;
+  };
+
+  const riskRows=aRisks.map((r,idx)=>{
+    const si=r.prob*r.impact; const li=lvl(si);
+    const res=calcResidual(r); const sr=res.score; const lr=lvl(sr);
+    const ctrls=(r.selectedCtrls||[]).map(cid=>{
+      const co=(r.ctrls||[]).find(c=>(typeof c==='object'?c.id:c)===cid)||{id:cid,name:cid};
+      const eff=r.ctrlEff?.[cid];
+      const effLbl=eff>=0?["Nada efetivo","Pouco efetivo","Parcialmente efetivo","Totalmente efetivo"][eff]||"—":"Não avaliado";
+      const fb=r.ctrlFeedback?.[cid]||"";
+      return`<div style="font-size:11px;margin-bottom:3px;padding:3px 0;border-bottom:1px solid #f3f4f6">
+        <strong>${typeof co==='object'?co.id:cid}</strong> — ${typeof co==='object'?co.name:cid}
+        <span style="color:#6b7280"> · ${effLbl}</span>
+        ${fb?`<div style="color:#9ca3af;font-size:10px;margin-top:1px">${fb}</div>`:""}
+      </div>`;
+    }).join("")||`<span style="color:#9ca3af;font-size:11px">Sem controlos</span>`;
+    const bg=idx%2===0?"#ffffff":"#f9fafb";
+    return`<tr style="background:${bg}">
+      <td style="padding:8px;font-family:monospace;font-size:11px;vertical-align:top">${r.id}</td>
+      <td style="padding:8px;font-size:12px;vertical-align:top"><strong>${r.name}</strong><div style="font-size:10px;color:#9ca3af">${r._lib}</div><div style="font-size:10px;color:#6b7280;margin-top:2px">CIA: ${r.cia}</div></td>
+      <td style="padding:8px;text-align:center;vertical-align:top"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:4px;font-weight:700;font-size:12px;background:${levelBg[li]};color:${levelColor[li]}">${si}</span><div style="font-size:10px;margin-top:2px;color:${levelColor[li]};font-weight:600">${li}</div></td>
+      <td style="padding:8px;text-align:center;vertical-align:top"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:4px;font-weight:700;font-size:12px;background:${levelBg[lr]};color:${levelColor[lr]}">${sr}</span><div style="font-size:10px;margin-top:2px;color:${levelColor[lr]};font-weight:600">${lr}</div>${res.autoMitigated?'<div style="font-size:9px;color:#166534;font-weight:700">Auto-mitigado</div>':''}</td>
+      <td style="padding:8px;font-size:11px;vertical-align:top">${ctrls}</td>
+    </tr>`;
+  }).join("");
+
+  const planRows=plans.length?plans.map((p,idx)=>{
+    const bg=idx%2===0?"#ffffff":"#f9fafb";
+    return`<tr style="background:${bg}">
+      <td style="padding:8px;font-size:12px">${p.riskName||p.riskId||"—"}</td>
+      <td style="padding:8px;font-size:12px">${p.ctrlId} — ${p.ctrlName}</td>
+      <td style="padding:8px;font-size:12px">${p.owner||"—"}</td>
+      <td style="padding:8px;font-size:12px;color:#6b7280">${p.dueDate||"—"}</td>
+      <td style="padding:8px"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:${statusBg[p.status]||"#f3f4f6"};color:${statusColor[p.status]||"#374151"}">${p.status}</span></td>
+    </tr>`;
+  }).join(""):`<tr><td colspan="5" style="padding:16px;text-align:center;color:#9ca3af;font-style:italic">Nenhum plano de mitigação criado nesta análise.</td></tr>`;
+
+  return`<!DOCTYPE html>
+<html lang="pt"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Relatório de Risco Residual — ${sys?sys.name:""} — ${today}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;color:#111827;background:#f9fafb;font-size:14px}
+.page{max-width:1000px;margin:0 auto;padding:32px 24px}
+.cover{background:#1d3461;color:#fff;border-radius:12px;padding:40px;margin-bottom:28px}
+.cover-id{font-size:12px;opacity:.6;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.cover-title{font-size:28px;font-weight:700;margin-bottom:6px}
+.cover-sub{font-size:15px;opacity:.75;margin-bottom:24px}
+.cover-meta{display:flex;gap:32px;flex-wrap:wrap}
+.cover-meta-item{font-size:13px}
+.cover-meta-label{opacity:.6;margin-bottom:2px;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.cover-meta-value{font-weight:600}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}
+.metric{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;text-align:center}
+.metric-val{font-size:26px;font-weight:700;margin-bottom:4px}
+.metric-lbl{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+.section{margin-bottom:32px}
+.section-title{font-size:16px;font-weight:700;color:#1d3461;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e5e7eb}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:16px}
+.exec-summary{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px;line-height:1.8;font-size:14px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse}
+th{background:#f3f4f6;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e5e7eb}
+td{border-bottom:1px solid #f3f4f6}
+.info-table td{padding:8px 12px}
+.info-label{color:#6b7280;font-weight:600;width:200px;background:#f9fafb}
+.matrices{display:flex;gap:32px;flex-wrap:wrap;margin-bottom:16px}
+.footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;display:flex;justify-content:space-between}
+@media print{body{background:#fff}.page{padding:16px}}
+</style></head>
+<body><div class="page">
+
+<div class="cover">
+  <div class="cover-id">Relatório de Risco Residual</div>
+  <div class="cover-title">${sys?sys.name:"Sistema não identificado"}</div>
+  <div class="cover-sub">${wizSelectedLibs.join(" · ")}</div>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><div class="cover-meta-label">Sistema</div><div class="cover-meta-value">${sys?sys.name:"—"}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">Tipo</div><div class="cover-meta-value">${sys?sys.type:"—"}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">Classificação</div><div class="cover-meta-value">${sys?sys.classification||"—":"—"}</div></div>
+    <div class="cover-meta-item"><div class="cover-meta-label">Data</div><div class="cover-meta-value">${today}</div></div>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric"><div class="metric-val" style="color:#374151">${aRisks.length}</div><div class="metric-lbl">Riscos avaliados</div></div>
+  <div class="metric"><div class="metric-val" style="color:#7f1d1d">${critCount}</div><div class="metric-lbl">Críticos</div></div>
+  <div class="metric"><div class="metric-val" style="color:#92400e">${highCount}</div><div class="metric-lbl">Altos</div></div>
+  <div class="metric"><div class="metric-val" style="color:#166534">${autoMitigCount}</div><div class="metric-lbl">Auto-mitigados</div></div>
+  <div class="metric"><div class="metric-val" style="color:#374151">${plans.length}</div><div class="metric-lbl">Planos</div></div>
+</div>
+
+<div class="section">
+  <div class="section-title">1. Sumário executivo</div>
+  <div class="exec-summary">${execSummary||"(Sem sumário executivo)"}</div>
+</div>
+
+<div class="section">
+  <div class="section-title">2. Informação do sistema</div>
+  <div class="card">
+    <table class="info-table">
+      <tr><td class="info-label">Nome</td><td style="padding:8px 12px">${sys?sys.name:"—"}</td></tr>
+      <tr><td class="info-label">Tipo</td><td style="padding:8px 12px">${sys?sys.type:"—"}</td></tr>
+      <tr><td class="info-label">Proprietário</td><td style="padding:8px 12px">${sys?sys.owner||"—":"—"}</td></tr>
+      <tr><td class="info-label">Ambiente</td><td style="padding:8px 12px">${sys?sys.env||"—":"—"}</td></tr>
+      <tr><td class="info-label">Classificação</td><td style="padding:8px 12px">${sys?sys.classification||"—":"—"}</td></tr>
+      <tr><td class="info-label">Confidencialidade (C)</td><td style="padding:8px 12px">${wizCIA.C||"—"}</td></tr>
+      <tr><td class="info-label">Integridade (I)</td><td style="padding:8px 12px">${wizCIA.I||"—"}</td></tr>
+      <tr><td class="info-label">Disponibilidade (A)</td><td style="padding:8px 12px">${wizCIA.A||"—"}</td></tr>
+      <tr><td class="info-label">Frameworks</td><td style="padding:8px 12px">${wizSelectedLibs.join(", ")}</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">3. Matrizes de risco</div>
+  <div class="matrices">
+    ${matrixHtml("Matriz inerente (antes dos controlos)",aRisks,r=>({p:r.prob,i:r.impact}))}
+    ${matrixHtml("Matriz residual (após controlos)",aRisks,r=>{const res=calcResidual(r);return{p:res.prob,i:res.impact};})}
+  </div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
+    <span><span style="display:inline-block;width:12px;height:12px;background:#7f1d1d;border-radius:2px;margin-right:4px"></span>Crítico (17–25)</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:2px;margin-right:4px"></span>Alto (10–16)</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#fffbeb;border:1px solid #fcd34d;border-radius:2px;margin-right:4px"></span>Médio (4–9)</span>
+    <span><span style="display:inline-block;width:12px;height:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:2px;margin-right:4px"></span>Baixo (1–3)</span>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">4. Riscos — avaliação inerente e residual</div>
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th>ID</th><th>Risco / Biblioteca</th>
+        <th style="text-align:center">Inerente</th>
+        <th style="text-align:center">Residual</th>
+        <th>Controlos e eficácia</th>
+      </tr></thead>
+      <tbody>${riskRows}</tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">5. Planos de mitigação</div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Risco</th><th>Controlo</th><th>Responsável</th><th>Data limite</th><th>Estado</th></tr></thead>
+      <tbody>${planRows}</tbody>
+    </table>
+  </div>
+</div>
+
+<div class="footer">
+  <span>IT Risk Register · ${sys?sys.name:""} · Relatório de Risco Residual</span>
+  <span>Gerado em ${today}</span>
+</div>
+</div></body></html>`;
+}
+
+function wizOpenHtmlReport(){
+  const html=buildWizReportHtml();
+  const w=window.open("","_blank");
+  if(w){ w.document.write(html); w.document.close(); }
+  else { toast("Permite janelas pop-up para abrir o relatório.","warn"); }
+}
+
+function wizExportJsonReport(){
+  const sys=sysById(wizSysId);
+  const execSummary=(document.getElementById("wizExecSummary")?.value||"").trim();
+  const report={
+    type:"it-risk-report",
+    generatedAt:new Date().toISOString(),
+    system:sys||{},
+    cia:wizCIA,
+    libraries:wizSelectedLibs,
+    execSummary,
+    risks:wizIRItems.map(r=>{
+      const res=calcResidual(r);
+      return{id:r.id,name:r.name,lib:r._lib,cia:r.cia,prob:r.prob,impact:r.impact,
+        score:r.prob*r.impact,residualScore:res.score,residualProb:res.prob,
+        autoMitigated:res.autoMitigated,avgCtrlEff:res.avgEff,
+        controls:(r.selectedCtrls||[]).map(cid=>{
+          const co=(r.ctrls||[]).find(c=>(typeof c==='object'?c.id:c)===cid)||{id:cid,name:cid};
+          return{id:typeof co==='object'?co.id:cid,name:typeof co==='object'?co.name:cid,
+            efficacy:r.ctrlEff?.[cid],feedback:r.ctrlFeedback?.[cid]||""};
+        })};
+    }),
+    plans:wizPendingPlans
+  };
+  openJsonModal(`Relatório — copia o JSON abaixo`,JSON.stringify(report,null,2),null);
 }
 
 // Step 0: CIA
