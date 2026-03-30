@@ -2436,7 +2436,8 @@ function renderIRStep(){
       const co=typeof c==='object'?c:getCtrlForLib(item._lib,cid)||{id:cid,name:cid,type:'Preventivo'};
       return`<div class="ctrl-item"><input type="checkbox" id="wirc-${safeKey}-${cid}" value="${cid}" ${item.selectedCtrls.includes(cid)?"checked":""} onchange="toggleIRCtrl('${cid}',this)"><label style="flex:1;cursor:pointer;font-size:12px"><strong>${co.id}</strong> — ${co.name}</label><span class="ct ${ctc(co.type)}">${co.type}</span></div>`;
     }).join("");
-  document.getElementById("wIRPrev").disabled=(wizIRIdx===0);
+  document.getElementById("wIRPrev").disabled=false;
+  document.getElementById("wIRPrev").textContent=wizIRIdx===0?"← Riscos":"← Anterior";
   document.getElementById("wIRNext").textContent=wizIRIdx===total-1?"Concluir avaliação →":"Guardar e seguinte →";
 }
 function toggleIRCtrl(cid,chk){
