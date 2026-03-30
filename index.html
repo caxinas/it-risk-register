@@ -334,6 +334,7 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
   <button data-tab="matrix" onclick="gotoTab('matrix',this)">Matriz</button>
   <button data-tab="plans" onclick="gotoTab('plans',this)">Planos de Mitigação</button>
   <button data-tab="users" onclick="gotoTab('users',this)">Utilizadores</button>
+  <button data-tab="logs" onclick="gotoTab('logs',this)">Logs</button>
   <button data-tab="help" onclick="gotoTab('help',this)">Ajuda</button>
 </nav>
 <main>
@@ -551,6 +552,47 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
         </tr></thead>
         <tbody id="permTable"></tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- LOGS -->
+<div id="section-logs" class="section">
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div class="ctitle" style="margin-bottom:0">Registo de actividade</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="clearLogs()" style="color:var(--crit);border-color:var(--crit-bd)">Limpar logs</button>
+      </div>
+    </div>
+    <div class="toolbar" style="margin-bottom:12px">
+      <input type="text" id="logSearch" placeholder="Pesquisar..." oninput="renderLogs()" style="min-width:180px">
+      <select id="logFilterCat" onchange="renderLogs()">
+        <option value="">Todas as categorias</option>
+        <option value="auth">Autenticação</option>
+        <option value="system">Sistemas</option>
+        <option value="analysis">Análises</option>
+        <option value="risk">Riscos</option>
+        <option value="plan">Planos</option>
+        <option value="library">Bibliotecas</option>
+        <option value="user">Utilizadores</option>
+        <option value="data">Dados</option>
+      </select>
+      <select id="logFilterUser" onchange="renderLogs()">
+        <option value="">Todos os utilizadores</option>
+      </select>
+      <div class="spacer"></div>
+      <span id="logCount" style="font-size:12px;color:var(--muted);align-self:center"></span>
+    </div>
+    <div class="twrap">
+      <table><thead><tr>
+        <th style="width:160px">Data / Hora</th>
+        <th style="width:120px">Utilizador</th>
+        <th style="width:100px">Categoria</th>
+        <th>Evento</th>
+        <th style="width:120px">Referência</th>
+      </tr></thead><tbody id="logsTable"></tbody></table>
+      <div id="logsEmpty" class="empty" style="display:none">Sem registos de actividade.</div>
     </div>
   </div>
 </div>
@@ -1371,7 +1413,7 @@ function gotoTab(name,btn){
   btn.classList.add("active");
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
   document.getElementById("section-"+name).classList.add("active");
-  const fn={dashboard:renderDash,systems:renderSystems,analyses:renderAnalyses,register:renderTable,libraries:renderLibraries,controls:renderControls,matrix:renderMatrix,plans:renderPlans,users:renderUsers,help:()=>{}};
+  const fn={dashboard:renderDash,systems:renderSystems,analyses:renderAnalyses,register:renderTable,libraries:renderLibraries,controls:renderControls,matrix:renderMatrix,plans:renderPlans,users:renderUsers,logs:renderLogs,help:()=>{}};
   if(fn[name])fn[name]();
   if(name==="register"||name==="systems")syncSysFilter();
 }
@@ -1563,13 +1605,16 @@ function saveSys(){
   const classification=document.getElementById("sf-class").value;
   const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,classification,data,cia:{...ciaState}};
   if(editSysId){systems[systems.findIndex(x=>x.id===editSysId)]=s;}else{systems.push(s);}
+  addLog('system',editSysId?`Sistema editado`:`Sistema criado`,name);
   closeSysModal();persistAppData();renderSystems();syncSysFilter();
 }
 async function delSys(id){
   if(!await confirmDialog("Remover este sistema?",{title:"Remover sistema",sub:"Os riscos e análises associados serão desligados.",okLabel:"Remover",danger:true}))return;
+  const _sysName=systems.find(s=>s.id===id)?.name||id;
   systems=systems.filter(s=>s.id!==id);
   risks.forEach(r=>{if(r.system===id)r.system="";});
   analyses=analyses.filter(a=>a.system!==id);
+  addLog('system','Sistema removido',_sysName);
   persistAppData();renderSystems();syncSysFilter();
 }
 // ════════════════════════════════════════════════════════════════════
@@ -1690,6 +1735,8 @@ function closeViewAnalysis(){document.getElementById("viewAnalysisModal").classL
 
 async function delAnalysis(id){
   if(!await confirmDialog("Remover esta análise?",{title:"Remover análise",sub:"Os riscos associados também serão removidos.",okLabel:"Remover",danger:true}))return;
+  const _aDel=analyses.find(a=>a.id===id);
+  addLog('analysis',`Análise removida`,id);
   risks=risks.filter(r=>r.analysis!==id);
   analyses=analyses.filter(a=>a.id!==id);
   persistAppData();renderAnalyses();renderTable();renderDash();
@@ -1922,9 +1969,11 @@ function saveRisk(){
   if(!title){toast("O título é obrigatório.","error");return;}
   const r={id:editRiskId||nextRiskId(),title,desc:document.getElementById("rf-desc").value,domain:document.getElementById("rf-domain").value,owner:document.getElementById("rf-owner").value,system:document.getElementById("rf-sys").value,cia:document.getElementById("rf-cia").value,libName:document.getElementById("rf-lib").value,prob:+document.getElementById("rf-prob").value,impact:+document.getElementById("rf-impact").value,treatment:document.getElementById("rf-treatment").value,plan:document.getElementById("rf-plan").value,status:document.getElementById("rf-status").value,date:document.getElementById("rf-date").value,controls:getChecked("riskCtrlList")};
   if(editRiskId){risks[risks.findIndex(x=>x.id===editRiskId)]=r;}else{risks.push(r);}
+  addLog('risk',editRiskId?'Risco editado':'Risco criado',title);
   closeRiskModal();persistAppData();renderTable();
 }
-function delRisk(id){confirmDialog("Remover este risco?",{title:"Remover risco",okLabel:"Remover",danger:true}).then(ok=>{if(ok){risks=risks.filter(r=>r.id!==id);persistAppData();renderTable();}});}
+function delRisk(id){confirmDialog("Remover este risco?",{title:"Remover risco",okLabel:"Remover",danger:true}).then(ok=>{if(ok){addLog('risk','Risco removido',id);
+  risks=risks.filter(r=>r.id!==id);persistAppData();renderTable();}});}
 
 
 
@@ -2105,6 +2154,7 @@ function saveCtrl(){
     if(globalCtrls.find(x=>x.id===id)){toast(`ID "${id}" já existe.`,"error");return;}
     globalCtrls.push({id,name,desc:document.getElementById("gc-desc").value.trim(),type:document.getElementById("gc-type").value,fw:document.getElementById("gc-fw").value.trim()});
   }
+  addLog('library',editCtrlId?'Controlo editado':'Controlo criado',name);
   persistAppData();renderControls();closeCtrlModal();
 }
 
@@ -2514,6 +2564,7 @@ function wSave(){
     mitigationPlans.push({...p,id:nextPlanId(),riskId:rid||"",system:wizSysId,analysis:aid});
   });
   wizPendingPlans=[];
+  addLog('analysis',`Análise registada — ${wizIRItems.length} riscos`,aid);
   clearDraft();
   // Close modal directly — bypass closeWiz() to avoid auto-save triggering
   document.getElementById("wizModal").classList.remove("open");
@@ -2613,6 +2664,7 @@ function migrateCustomLibs(){
 
 // Export full app state as JSON file (always works, no browser restrictions)
 function exportAppData(){
+  addLog('data','Dados exportados','JSON');
   const data = {systems,risks,analyses,mitigationPlans,customLibs,exportedAt:new Date().toISOString()};
   openJsonModal("Exportar dados — copia o JSON abaixo", JSON.stringify(data,null,2), null);
 }
@@ -2699,6 +2751,7 @@ function doImportAppData(data){
   persistAppData();
   renderDash();renderSystems();renderAnalyses();renderTable();
   renderLibraries();renderControls();renderMatrix();syncSysFilter();renderPlans();renderUsers();
+  addLog('data','Dados importados','JSON');
   toast("Dados importados com sucesso.","success");
 }
 
@@ -3034,6 +3087,7 @@ function lwSaveLib(){
   closeLibWiz();
   renderLibraries();
   // also rebuild lib selector in risk modal
+  addLog('library',`Biblioteca criada`,m.name);
   persistAppData();toast(`Biblioteca "${m.name}" criada com ${lw.risks.length} riscos.`,"success");
 }
 
@@ -3121,6 +3175,7 @@ function libCtrlAddBtn(btn){openLibCtrlAdd(btn.dataset.lib,btn.dataset.risk);}
 
 async function delCustomLib(name){
   if(!await confirmDialog(`Remover a biblioteca "${name}"?`,{title:"Remover biblioteca",sub:"Esta ação não pode ser desfeita.",okLabel:"Remover",danger:true}))return;
+  addLog('library','Biblioteca removida',name);
   delete customLibs[name];
   activeLib = LIB_NAMES[0];
   renderLibraries();
@@ -3440,12 +3495,14 @@ function savePlan(){
   }
   if(editPlanId){mitigationPlans[mitigationPlans.findIndex(x=>x.id===editPlanId)]=plan;}
   else{mitigationPlans.push(plan);}
+  addLog('plan',editPlanId?'Plano editado':'Plano criado',riskName||'');
   closePlanModal();
   persistAppData();renderPlans();
 }
 
 async function deletePlan(id){
   if(!await confirmDialog("Remover este plano de mitigação?",{title:"Remover plano",okLabel:"Remover",danger:true}))return;
+  addLog('plan','Plano removido',id);
   mitigationPlans=mitigationPlans.filter(p=>p.id!==id);
   persistAppData();renderPlans();
 }
@@ -3461,6 +3518,109 @@ function setCtrlMode(mode){
 }
 
 // ════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════
+// AUDIT LOG
+// ════════════════════════════════════════════════════════════════════
+const LOG_KEY = "itRiskAuditLog";
+const LOG_MAX = 500;
+
+const LOG_CAT_LABELS = {
+  auth:"Autenticação", system:"Sistemas", analysis:"Análises",
+  risk:"Riscos", plan:"Planos", library:"Bibliotecas",
+  user:"Utilizadores", data:"Dados"
+};
+const LOG_CAT_COLORS = {
+  auth:"#1d3461", system:"#0369a1", analysis:"#7c3aed",
+  risk:"#dc2626", plan:"#d97706", library:"#065f46",
+  user:"#374151", data:"#6b7280"
+};
+
+let auditLog = [];
+
+function addLog(category, action, ref=""){
+  const entry = {
+    id: Date.now()+"-"+Math.random().toString(36).slice(2,6),
+    ts: new Date().toISOString(),
+    user: currentUser ? currentUser.name : "Sistema",
+    username: currentUser ? currentUser.username : "—",
+    category,
+    action,
+    ref
+  };
+  auditLog.unshift(entry);
+  if(auditLog.length > LOG_MAX) auditLog = auditLog.slice(0, LOG_MAX);
+  saveAuditLog();
+}
+
+function saveAuditLog(){
+  if(!LS_OK) return;
+  try { localStorage.setItem(LOG_KEY, JSON.stringify(auditLog)); } catch(e){}
+}
+
+function loadAuditLog(){
+  if(!LS_OK) return;
+  try {
+    const raw = localStorage.getItem(LOG_KEY);
+    if(raw) auditLog = JSON.parse(raw);
+  } catch(e){}
+}
+
+async function clearLogs(){
+  if(!await confirmDialog("Limpar todos os registos de actividade?",{title:"Limpar logs",okLabel:"Limpar",danger:true})) return;
+  auditLog = [];
+  saveAuditLog();
+  renderLogs();
+  toast("Logs limpos.","success");
+}
+
+function renderLogs(){
+  const q = (document.getElementById("logSearch")?.value||"").toLowerCase();
+  const fCat = document.getElementById("logFilterCat")?.value||"";
+  const fUser = document.getElementById("logFilterUser")?.value||"";
+
+  // Sync user filter dropdown
+  const userSel = document.getElementById("logFilterUser");
+  if(userSel){
+    const cur = userSel.value;
+    const users = [...new Set(auditLog.map(l=>l.username))].sort();
+    userSel.innerHTML = '<option value="">Todos os utilizadores</option>' +
+      users.map(u=>`<option value="${u}" ${u===cur?"selected":""}>${u}</option>`).join("");
+  }
+
+  const filtered = auditLog.filter(l=>{
+    if(fCat && l.category !== fCat) return false;
+    if(fUser && l.username !== fUser) return false;
+    if(q && !l.action.toLowerCase().includes(q) && !l.user.toLowerCase().includes(q) && !(l.ref||"").toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const countEl = document.getElementById("logCount");
+  if(countEl) countEl.textContent = filtered.length === auditLog.length
+    ? `${auditLog.length} entrada${auditLog.length!==1?"s":""}`
+    : `${filtered.length} de ${auditLog.length}`;
+
+  const tb = document.getElementById("logsTable");
+  const em = document.getElementById("logsEmpty");
+  if(!filtered.length){ tb.innerHTML=""; em.style.display="block"; return; }
+  em.style.display="none";
+
+  tb.innerHTML = filtered.map((l,i)=>{
+    const d = new Date(l.ts);
+    const date = d.toLocaleDateString("pt-PT",{day:"2-digit",month:"2-digit",year:"numeric"});
+    const time = d.toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    const catColor = LOG_CAT_COLORS[l.category]||"#6b7280";
+    const catLabel = LOG_CAT_LABELS[l.category]||l.category;
+    const bg = i%2===0?"":"background:var(--bg)";
+    return`<tr style="${bg}">
+      <td style="font-size:11px;color:var(--muted);white-space:nowrap">${date}<br>${time}</td>
+      <td style="font-size:12px;font-weight:600">${l.user}<div style="font-size:10px;color:var(--muted);font-weight:400">${l.username}</div></td>
+      <td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${catColor}18;color:${catColor}">${catLabel}</span></td>
+      <td style="font-size:13px">${l.action}</td>
+      <td style="font-size:11px;color:var(--muted);font-family:monospace">${l.ref||"—"}</td>
+    </tr>`;
+  }).join("");
+}
+
 // USER MANAGEMENT
 // ════════════════════════════════════════════════════════════════════
 const ROLES = {
@@ -3471,7 +3631,7 @@ const ROLES = {
 
 // Tabs visible per role (admin sees all)
 const ROLE_TABS = {
-  admin:        ["dashboard","systems","analyses","register","libraries","controls","matrix","plans","users","help"],
+  admin:        ["dashboard","systems","analyses","register","libraries","controls","matrix","plans","users","logs","help"],
   risk_manager: ["dashboard","systems","analyses","register","matrix","plans","help"],
   readonly:     ["dashboard","register","matrix","help"],
 };
@@ -3678,6 +3838,7 @@ function loginAsUser(id){
   u.lastAccess=new Date().toISOString().slice(0,10);
   currentUser={...u};
   persistAppData();
+  addLog('auth','Login efetuado',u.username);
   updateHeaderUser();
   applyNavAccess();
   hideLoginScreen();
@@ -3703,7 +3864,9 @@ function checkLoginRequired(){
 
 async function logoutUser(){
   if(!await confirmDialog(`Terminar sessão de "${currentUser.name}"?`,{title:"Terminar sessão",okLabel:"Sair",danger:false})) return;
+  const _logoutName=currentUser?.name; const _logoutUser=currentUser?.username;
   currentUser=null;
+  addLog('auth','Logout efetuado',_logoutUser||'—');
   updateHeaderUser();
   applyNavAccess();
   showLoginScreen();
@@ -3774,6 +3937,7 @@ function saveUser(){
       lastAccess:""
     });
   }
+  addLog('user',editUserId?'Utilizador editado':'Utilizador criado',username);
   closeUserModal();
   persistAppData();
   renderUsers();
@@ -3782,6 +3946,7 @@ function saveUser(){
 async function deleteUser(id){
   if(currentUser&&currentUser.id===id){toast("Não podes remover o utilizador com sessão ativa.","error");return;}
   if(!await confirmDialog("Remover este utilizador?",{title:"Remover utilizador",okLabel:"Remover",danger:true}))return;
+  addLog('user','Utilizador removido',id);
   appUsers=appUsers.filter(u=>u.id!==id);
   persistAppData();
   renderUsers();
@@ -3857,6 +4022,7 @@ function simpleHash(str){
 // INIT
 // ════════════════════════════════════════════════════════════════════
 loadAppData();
+loadAuditLog();
 migrateCustomLibs();
 // Set default user to first active admin if none selected
 if(!currentUser){
