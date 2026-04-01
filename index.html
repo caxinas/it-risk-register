@@ -955,7 +955,7 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
         <option value="Secreto">Secreto</option>
       </select>
     </div>
-    <div class="fg full"><label>Dados processados</label>
+    <div class="fg"><label>Dados processados</label>
       <select id="sf-data">
         <option value="">— Não especificado —</option>
         <option value="Pessoais">Dados pessoais (RGPD)</option>
@@ -968,16 +968,37 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
         <option value="Logs">Logs e auditoria</option>
       </select>
     </div>
+    <div class="fg"><label>Confidencialidade (C) *</label>
+      <select id="sf-cia-c">
+        <option value="">— Seleciona —</option>
+        <option value="Reduzido">Reduzido</option>
+        <option value="Médio">Médio</option>
+        <option value="Alto">Alto</option>
+        <option value="Muito Alto">Muito Alto</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Impacto da divulgação não autorizada</div>
+    </div>
+    <div class="fg"><label>Integridade (I) *</label>
+      <select id="sf-cia-i">
+        <option value="">— Seleciona —</option>
+        <option value="Reduzido">Reduzido</option>
+        <option value="Médio">Médio</option>
+        <option value="Alto">Alto</option>
+        <option value="Muito Alto">Muito Alto</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Impacto da alteração ou corrupção</div>
+    </div>
+    <div class="fg"><label>Disponibilidade (A) *</label>
+      <select id="sf-cia-a">
+        <option value="">— Seleciona —</option>
+        <option value="Reduzido">Reduzido</option>
+        <option value="Médio">Médio</option>
+        <option value="Alto">Alto</option>
+        <option value="Muito Alto">Muito Alto</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Impacto da indisponibilidade</div>
+    </div>
   </div>
-  <span class="slabel" style="margin-top:18px">CIA — Confidencialidade</span>
-  <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Impacto da divulgação não autorizada</p>
-  <div class="cia-grid" id="sfC"></div>
-  <span class="slabel" style="margin-top:14px">CIA — Integridade</span>
-  <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Impacto da alteração ou corrupção de dados</p>
-  <div class="cia-grid" id="sfI"></div>
-  <span class="slabel" style="margin-top:14px">CIA — Disponibilidade</span>
-  <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Impacto da indisponibilidade do sistema</p>
-  <div class="cia-grid" id="sfA"></div>
   <div class="mfooter">
     <button class="btn" onclick="closeSysModal()">Cancelar</button>
     <button class="btn btn-primary" onclick="saveSys()">Guardar sistema</button>
@@ -1714,7 +1735,7 @@ function syncSysFilter(){
 }
 
 function openSysAdd(){
-  editSysId=null;ciaState={C:null,I:null,A:null};
+  editSysId=null;
   document.getElementById("sysMTitle").textContent="Novo sistema";
   ["sf-name","sf-desc","sf-owner"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("sf-type").value="Aplicação Web";
@@ -1722,12 +1743,14 @@ function openSysAdd(){
   document.getElementById("sf-class").value="";
   document.getElementById("sf-exposure").value="";
   document.getElementById("sf-data").value="";
-  buildCIAOpts("sfC","C",null);buildCIAOpts("sfI","I",null);buildCIAOpts("sfA","A",null);
+  document.getElementById("sf-cia-c").value="";
+  document.getElementById("sf-cia-i").value="";
+  document.getElementById("sf-cia-a").value="";
   document.getElementById("sysModal").classList.add("open");
 }
 function openSysEdit(id){
   const s=systems.find(x=>x.id===id);if(!s)return;
-  editSysId=id;ciaState={...s.cia};
+  editSysId=id;
   document.getElementById("sysMTitle").textContent="Editar — "+s.name;
   document.getElementById("sf-name").value=s.name;
   document.getElementById("sf-desc").value=s.desc||"";
@@ -1736,21 +1759,25 @@ function openSysEdit(id){
   document.getElementById("sf-env").value=s.env||"Produção";
   document.getElementById("sf-class").value=s.classification||"";
   document.getElementById("sf-exposure").value=s.exposure||"";
-  // data was stored as array previously — take first value for dropdown
   document.getElementById("sf-data").value=Array.isArray(s.data)?s.data[0]||"":s.data||"";
-  buildCIAOpts("sfC","C",s.cia.C);buildCIAOpts("sfI","I",s.cia.I);buildCIAOpts("sfA","A",s.cia.A);
+  document.getElementById("sf-cia-c").value=s.cia?.C||"";
+  document.getElementById("sf-cia-i").value=s.cia?.I||"";
+  document.getElementById("sf-cia-a").value=s.cia?.A||"";
   document.getElementById("sysModal").classList.add("open");
 }
 function closeSysModal(){document.getElementById("sysModal").classList.remove("open");}
 function saveSys(){
   const name=document.getElementById("sf-name").value.trim();
   if(!name){toast("O nome é obrigatório.","error");return;}
-  if(!ciaState.C||!ciaState.I||!ciaState.A){toast("Classifica os três vetores CIA.","error");return;}
+  const cC=document.getElementById("sf-cia-c").value;
+  const cI=document.getElementById("sf-cia-i").value;
+  const cA=document.getElementById("sf-cia-a").value;
+  if(!cC||!cI||!cA){toast("Classifica os três vetores CIA.","error");return;}
   const dataVal=document.getElementById("sf-data").value;
   const data=dataVal?[dataVal]:[];
   const classification=document.getElementById("sf-class").value;
   const exposure=document.getElementById("sf-exposure").value;
-  const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,classification,exposure,data,cia:{...ciaState}};
+  const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,classification,exposure,data,cia:{C:cC,I:cI,A:cA}};
   if(editSysId){systems[systems.findIndex(x=>x.id===editSysId)]=s;}else{systems.push(s);}
   addLog('system',editSysId?`Sistema editado`:`Sistema criado`,name);
   closeSysModal();persistAppData();renderSystems();syncSysFilter();
