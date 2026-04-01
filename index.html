@@ -2796,7 +2796,8 @@ function renderCtrlEffStep(){
   document.getElementById("wCtrlProgress").textContent=`Risco ${wizCtrlIdx+1} de ${total}`;
   document.getElementById("wCtrlRiskName").textContent=`${item.id} — ${item.name}`;
   document.getElementById("wCtrlRiskScore").textContent=`Score inerente: ${s} (${lvl(s)}) · ${item.selectedCtrls.length} controlo${item.selectedCtrls.length!==1?"s":""}`;
-  document.getElementById("wCtrlPrev").disabled=(wizCtrlIdx===0);
+  document.getElementById("wCtrlPrev").disabled=false;
+  document.getElementById("wCtrlPrev").textContent=wizCtrlIdx===0?"← Matriz":"← Anterior";
   document.getElementById("wCtrlNext").textContent=wizCtrlIdx===total-1?"Concluir e ver resumo →":"Guardar e seguinte →";
   if(!item.ctrlEff)item.ctrlEff={};
   if(!item.ctrlFeedback)item.ctrlFeedback={};
