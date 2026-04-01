@@ -517,8 +517,8 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
           <div style="font-size:12px;color:var(--muted)">Quando ativada, o utilizador terá de introduzir a password para aceder. Atualmente em modo de seleção simples (sem password).</div>
         </div>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-          <div style="position:relative;width:44px;height:24px" onclick="toggleAuthMode()">
-            <input type="checkbox" id="authModeChk" style="opacity:0;width:0;height:0;position:absolute">
+          <div style="position:relative;width:44px;height:24px">
+            <input type="checkbox" id="authModeChk" style="opacity:0;width:0;height:0;position:absolute" onchange="toggleAuthMode()">
             <div id="authModeTrack" style="position:absolute;inset:0;background:var(--border);border-radius:12px;transition:background .2s"></div>
             <div id="authModeThumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
           </div>
@@ -4090,7 +4090,8 @@ function renderUsers(){
 }
 
 function toggleAuthMode(){
-  authModeEnabled=!authModeEnabled;
+  const chk=document.getElementById("authModeChk");
+  authModeEnabled=chk?chk.checked:!authModeEnabled;
   updateHeaderUser();
   renderUsers();
   persistAppData();
