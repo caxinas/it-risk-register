@@ -190,7 +190,8 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 
 /* System cards */
 .sys-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
-.metric-mini{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;text-align:center;min-width:80px;}
+.chip-selected{background:var(--accent-light);border-color:var(--accent)!important;color:var(--accent);font-weight:600;}
+background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;text-align:center;min-width:80px;}
 .metric-mini .mv{font-size:22px;font-weight:700;line-height:1.2;}
 .metric-mini .ml{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
 background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px;display:flex;flex-direction:column;gap:10px;transition:box-shadow .15s;}
@@ -928,15 +929,21 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
       <select id="sf-type"><option>Aplicação Web</option><option>API / Serviço</option><option>Aplicação Mobile</option><option>Infraestrutura</option><option>SaaS</option><option>Base de Dados</option><option>Rede</option><option>Outro</option></select>
     </div>
     <div class="fg"><label>Proprietário</label><input id="sf-owner" type="text" placeholder="Ex: CISO, IT Manager"></div>
-    <div class="fg"><label>Dados processados</label>
-      <select id="sf-data" multiple size="4">
-        <option value="Pessoais">Dados pessoais (RGPD)</option><option value="Financeiros">Dados financeiros</option>
-        <option value="Confidenciais">Dados confidenciais</option><option value="Saúde">Dados de saúde</option>
-        <option value="Públicos">Dados públicos</option><option value="Operacionais">Dados operacionais</option>
-      </select><span style="font-size:11px;color:var(--muted)">Ctrl+clique para múltiplos</span>
-    </div>
     <div class="fg"><label>Ambiente</label>
       <select id="sf-env"><option>Produção</option><option>Desenvolvimento</option><option>Teste</option><option>DR</option></select>
+    </div>
+    <div class="fg"><label>Exposição</label>
+      <select id="sf-exposure">
+        <option value="">— Não definido —</option>
+        <option value="Internet">Internet (acesso público)</option>
+        <option value="Extranet">Extranet (parceiros/clientes)</option>
+        <option value="Intranet">Intranet (rede interna)</option>
+        <option value="DMZ">DMZ</option>
+        <option value="Isolado">Isolado (air-gap)</option>
+        <option value="Cloud Pública">Cloud Pública</option>
+        <option value="Cloud Privada">Cloud Privada</option>
+        <option value="Híbrido">Híbrido</option>
+      </select>
     </div>
     <div class="fg"><label>Classificação da informação</label>
       <select id="sf-class">
@@ -946,6 +953,19 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
         <option value="Restrito">Restrito</option>
         <option value="Confidencial">Confidencial</option>
         <option value="Secreto">Secreto</option>
+      </select>
+    </div>
+    <div class="fg full"><label>Dados processados</label>
+      <select id="sf-data">
+        <option value="">— Não especificado —</option>
+        <option value="Pessoais">Dados pessoais (RGPD)</option>
+        <option value="Financeiros">Dados financeiros</option>
+        <option value="Confidenciais">Dados confidenciais</option>
+        <option value="Saúde">Dados de saúde</option>
+        <option value="Públicos">Dados públicos</option>
+        <option value="Operacionais">Dados operacionais</option>
+        <option value="Autenticação">Dados de autenticação</option>
+        <option value="Logs">Logs e auditoria</option>
       </select>
     </div>
   </div>
@@ -1634,6 +1654,7 @@ function openSysView(id){
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Ambiente</div><div style="font-size:13px">${s.env||"—"}</div></div>
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Criticidade</div><div><span class="${bc(crit)}">${crit}</span></div></div>
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Classificação</div><div>${s.classification?`<span class="badge ${classColor(s.classification)}">${s.classification}</span>`:"—"}</div></div>
+      <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Exposição</div><div style="font-size:13px">${s.exposure||"—"}</div></div>
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Dados processados</div><div style="font-size:13px">${(s.data||[]).join(", ")||"—"}</div></div>
       ${s.desc?`<div class="fg full"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Descrição</div><div style="font-size:13px">${s.desc}</div></div>`:""}
     </div>
@@ -1699,7 +1720,8 @@ function openSysAdd(){
   document.getElementById("sf-type").value="Aplicação Web";
   document.getElementById("sf-env").value="Produção";
   document.getElementById("sf-class").value="";
-  Array.from(document.getElementById("sf-data").options).forEach(o=>o.selected=false);
+  document.getElementById("sf-exposure").value="";
+  document.getElementById("sf-data").value="";
   buildCIAOpts("sfC","C",null);buildCIAOpts("sfI","I",null);buildCIAOpts("sfA","A",null);
   document.getElementById("sysModal").classList.add("open");
 }
@@ -1707,11 +1729,15 @@ function openSysEdit(id){
   const s=systems.find(x=>x.id===id);if(!s)return;
   editSysId=id;ciaState={...s.cia};
   document.getElementById("sysMTitle").textContent="Editar — "+s.name;
-  document.getElementById("sf-name").value=s.name;document.getElementById("sf-desc").value=s.desc||"";
-  document.getElementById("sf-type").value=s.type;document.getElementById("sf-owner").value=s.owner||"";
+  document.getElementById("sf-name").value=s.name;
+  document.getElementById("sf-desc").value=s.desc||"";
+  document.getElementById("sf-type").value=s.type;
+  document.getElementById("sf-owner").value=s.owner||"";
   document.getElementById("sf-env").value=s.env||"Produção";
   document.getElementById("sf-class").value=s.classification||"";
-  Array.from(document.getElementById("sf-data").options).forEach(o=>o.selected=(s.data||[]).includes(o.value));
+  document.getElementById("sf-exposure").value=s.exposure||"";
+  // data was stored as array previously — take first value for dropdown
+  document.getElementById("sf-data").value=Array.isArray(s.data)?s.data[0]||"":s.data||"";
   buildCIAOpts("sfC","C",s.cia.C);buildCIAOpts("sfI","I",s.cia.I);buildCIAOpts("sfA","A",s.cia.A);
   document.getElementById("sysModal").classList.add("open");
 }
@@ -1720,9 +1746,11 @@ function saveSys(){
   const name=document.getElementById("sf-name").value.trim();
   if(!name){toast("O nome é obrigatório.","error");return;}
   if(!ciaState.C||!ciaState.I||!ciaState.A){toast("Classifica os três vetores CIA.","error");return;}
-  const data=Array.from(document.getElementById("sf-data").selectedOptions).map(o=>o.value);
+  const dataVal=document.getElementById("sf-data").value;
+  const data=dataVal?[dataVal]:[];
   const classification=document.getElementById("sf-class").value;
-  const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,classification,data,cia:{...ciaState}};
+  const exposure=document.getElementById("sf-exposure").value;
+  const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,classification,exposure,data,cia:{...ciaState}};
   if(editSysId){systems[systems.findIndex(x=>x.id===editSysId)]=s;}else{systems.push(s);}
   addLog('system',editSysId?`Sistema editado`:`Sistema criado`,name);
   closeSysModal();persistAppData();renderSystems();syncSysFilter();
