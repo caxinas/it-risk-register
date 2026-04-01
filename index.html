@@ -400,6 +400,7 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
     <select id="rSystem" onchange="renderTable()"><option value="">Todos os sistemas</option></select>
     <select id="rStatus" onchange="renderTable()"><option value="">Todos os estados</option><option>Aberto</option><option>Mitigado</option><option>Aceite</option><option>Transferido</option></select>
     <div class="spacer"></div>
+    <button class="btn" onclick="openCsvImport('register')" title="Importar riscos e controlos via CSV">⬆ Importar CSV</button>
     <button class="btn btn-primary" onclick="openRiskAdd(null)">+ Adicionar risco</button>
   </div>
   <div class="card" style="padding:0">
@@ -415,6 +416,7 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
 <div id="section-libraries" class="section">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
     <div class="lib-tabs" id="libTabs" style="margin-bottom:0"></div>
+    <button class="btn" onclick="openCsvImport('library')" title="Importar riscos e controlos via CSV">⬆ Importar CSV</button>
     <button class="btn btn-primary" onclick="openLibWiz()">+ Nova biblioteca</button>
   </div>
   <div id="libContent"></div>
@@ -3965,6 +3967,184 @@ const LOG_CAT_COLORS = {
 
 let auditLog = [];
 
+// ════════════════════════════════════════════════════════════════════
+// CSV IMPORT
+// ════════════════════════════════════════════════════════════════════
+const CSV_TEMPLATE_HEADER = "risco_id,risco_nome,risco_desc,risco_cia,probabilidade,impacto,tratamento,ctrl_id,ctrl_nome,ctrl_tipo,ctrl_desc,ctrl_ref";
+const CSV_TEMPLATE_ROWS = [
+  "R-01,Injeção SQL,Ausência de validação de inputs permite injeção de SQL,CIA,4,5,Mitigar,C-01,Validação de inputs,Preventivo,Sanitizar e validar todos os inputs de utilizador,OWASP A03",
+  "R-01,Injeção SQL,Ausência de validação de inputs permite injeção de SQL,CIA,4,5,Mitigar,C-02,Prepared statements,Preventivo,Usar prepared statements em todas as queries,CIS 16.1",
+  "R-02,Autenticação fraca,Mecanismos de autenticação insuficientes,C,3,4,Mitigar,C-03,MFA obrigatório,Preventivo,Implementar autenticação multifactor,OWASP A07",
+  "R-03,Exposição de dados sensíveis,Dados sensíveis transmitidos sem encriptação,CI,3,5,Aceite,,,,,"
+];
+
+let csvParsedData = [];
+let csvImportTarget = 'library';
+
+function openCsvImport(target){
+  csvImportTarget = target||'library';
+  document.getElementById("csvInput").value="";
+  document.getElementById("csvStep1").style.display="block";
+  document.getElementById("csvStep2").style.display="none";
+  document.getElementById("csvLibName").value="";
+  document.querySelector('input[name="csvDest"][value="library"]').checked=true;
+  document.getElementById("csvModal").classList.add("open");
+}
+function closeCsvModal(){ document.getElementById("csvModal").classList.remove("open"); }
+
+function downloadCsvTemplate(){
+  const csv=[CSV_TEMPLATE_HEADER,...CSV_TEMPLATE_ROWS].join("\n");
+  // Copy to clipboard since no file download available
+  navigator.clipboard.writeText(csv).then(()=>{
+    toast("Template CSV copiado para a área de transferência. Cola num editor de texto e guarda como .csv","success",5000);
+  }).catch(()=>{
+    openJsonModal("Template CSV — copia e guarda como ficheiro .csv",csv,null);
+  });
+}
+
+function csvFileLoad(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{ document.getElementById("csvInput").value=e.target.result; };
+  reader.readAsText(file,"UTF-8");
+}
+
+function csvParseRow(row){
+  // Handle quoted fields with commas inside
+  const result=[];let cur="";let inQuote=false;
+  for(let i=0;i<row.length;i++){
+    const ch=row[i];
+    if(ch==='"'){ inQuote=!inQuote; }
+    else if(ch===','&&!inQuote){ result.push(cur.trim()); cur=""; }
+    else { cur+=ch; }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function csvParse(){
+  const raw=document.getElementById("csvInput").value.trim();
+  if(!raw){ toast("Cola o conteúdo CSV antes de continuar.","error"); return; }
+
+  const lines=raw.split(/\r?\n/).filter(l=>l.trim()&&!l.trim().startsWith("#"));
+  if(!lines.length){ toast("CSV vazio ou inválido.","error"); return; }
+
+  // Detect and skip header row
+  const firstCols=csvParseRow(lines[0]).map(c=>c.toLowerCase().replace(/[^a-z_]/g,""));
+  const hasHeader=firstCols.includes("risco_nome")||firstCols.includes("risco_id")||firstCols.includes("nome");
+  const dataLines=hasHeader?lines.slice(1):lines;
+
+  if(!dataLines.length){ toast("Nenhuma linha de dados encontrada.","error"); return; }
+
+  // Group by risco_id or risco_nome
+  const riskMap=new Map();
+  const errors=[];
+
+  dataLines.forEach((line,idx)=>{
+    const cols=csvParseRow(line);
+    if(cols.length<2){ errors.push(`Linha ${idx+2}: colunas insuficientes`); return; }
+    const [rid,rname,rdesc,rcia,rprob,rimp,rtreat,cid,cname,ctype,cdesc,cref]=cols;
+    if(!rname){ errors.push(`Linha ${idx+2}: nome do risco em falta`); return; }
+
+    const key=rid||rname;
+    if(!riskMap.has(key)){
+      riskMap.set(key,{
+        id:rid||"",name:rname,desc:rdesc||"",cia:rcia||"CIA",
+        prob:Math.min(5,Math.max(1,parseInt(rprob)||3)),
+        impact:Math.min(5,Math.max(1,parseInt(rimp)||3)),
+        treatment:rtreat||"Mitigar",
+        ctrls:[]
+      });
+    }
+    if(cid||cname){
+      riskMap.get(key).ctrls.push({
+        id:cid||(cname?`C-${riskMap.get(key).ctrls.length+1}`:`C-${idx+1}`),
+        name:cname||"",
+        type:["Preventivo","Detetivo","Resposta"].includes(ctype)?ctype:"Preventivo",
+        desc:cdesc||"",
+        ref:cref||""
+      });
+    }
+  });
+
+  csvParsedData=[...riskMap.values()];
+  if(!csvParsedData.length){ toast("Nenhum risco válido encontrado no CSV.","error"); return; }
+
+  // Build preview
+  const errHtml=errors.length?`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r);padding:10px;font-size:12px;color:#991b1b;margin-bottom:10px">⚠ ${errors.length} linha(s) ignorada(s): ${errors.slice(0,3).join("; ")}${errors.length>3?` e mais ${errors.length-3}...`:""}</div>`:"";
+  const previewRows=csvParsedData.map(r=>`
+    <tr>
+      <td style="padding:6px 8px;font-weight:600;font-size:12px">${r.name}</td>
+      <td style="padding:6px 8px;font-size:11px;color:var(--muted)">${r.cia}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:12px">${r.prob}×${r.impact}=<strong>${r.prob*r.impact}</strong></td>
+      <td style="padding:6px 8px;font-size:11px;color:var(--muted)">${r.treatment}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:12px">${r.ctrls.length}</td>
+    </tr>`).join("");
+
+  document.getElementById("csvPreview").innerHTML=`
+    ${errHtml}
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">Pré-visualização — ${csvParsedData.length} risco${csvParsedData.length!==1?"s":""} encontrado${csvParsedData.length!==1?"s":""}</div>
+    <div class="twrap" style="max-height:220px;overflow-y:auto">
+      <table><thead><tr>
+        <th>Risco</th><th>CIA</th><th>P×I=Score</th><th>Tratamento</th><th>Controlos</th>
+      </tr></thead><tbody>${previewRows}</tbody></table>
+    </div>`;
+
+  // Pre-fill library name
+  document.getElementById("csvLibName").value=`Importação CSV ${new Date().toLocaleDateString("pt-PT")}`;
+  // Set default destination to what was clicked
+  document.querySelector(`input[name="csvDest"][value="${csvImportTarget}"]`).checked=true;
+
+  document.getElementById("csvStep1").style.display="none";
+  document.getElementById("csvStep2").style.display="block";
+}
+
+function csvBack(){
+  document.getElementById("csvStep1").style.display="block";
+  document.getElementById("csvStep2").style.display="none";
+}
+
+function csvImport(){
+  if(!csvParsedData.length){ toast("Sem dados para importar.","error"); return; }
+  const dest=document.querySelector('input[name="csvDest"]:checked')?.value||"library";
+
+  if(dest==="library"){
+    const libName=document.getElementById("csvLibName").value.trim();
+    if(!libName){ toast("Indica o nome da biblioteca.","error"); return; }
+    if(allLibNames().includes(libName)){ toast(`Já existe uma biblioteca com o nome "${libName}".`,"error"); return; }
+
+    const libRisks=csvParsedData.map((r,i)=>({
+      id:`R${String(i+1).padStart(2,"0")}`,
+      name:r.name, desc:r.desc, cia:r.cia,
+      ctrls:r.ctrls.map(c=>({...c}))
+    }));
+    customLibs[libName]={id:libName.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,""),
+      name:libName, risks:libRisks, _custom:true};
+    persistAppData(); renderLibraries(); renderControls();
+    addLog("library",`Biblioteca importada via CSV`,libName);
+    closeCsvModal();
+    toast(`Biblioteca "${libName}" criada com ${libRisks.length} riscos.`,"success");
+
+  } else {
+    // Add to risk register directly
+    const sys=""; const today=new Date().toISOString().slice(0,10);
+    const libLabel="CSV Import";
+    csvParsedData.forEach(r=>{
+      const id=nextRiskId();
+      risks.push({
+        id, title:r.name, desc:r.desc, domain:"Outro", cia:r.cia,
+        prob:r.prob, impact:r.impact, treatment:r.treatment,
+        status:"Aberto", libName:libLabel, system:sys, date:today,
+        controls:r.ctrls.map(c=>c.id), plan:"", owner:""
+      });
+    });
+    persistAppData(); renderTable(); renderDash();
+    addLog("risk",`${csvParsedData.length} riscos importados via CSV`,libLabel);
+    closeCsvModal();
+    toast(`${csvParsedData.length} risco${csvParsedData.length!==1?"s":""} adicionado${csvParsedData.length!==1?"s":""} ao registo.`,"success");
+  }
+}
+
 function addLog(category, action, ref=""){
   const entry = {
     id: Date.now()+"-"+Math.random().toString(36).slice(2,6),
@@ -4775,6 +4955,65 @@ checkLoginRequired();
 
   <div class="ctitle" style="margin-bottom:10px">Planos de mitigação</div>
   <div id="vaPlans" style="overflow-x:auto;margin-bottom:8px"></div>
+</div>
+</div>
+
+<!-- ═══ MODAL: CSV IMPORT ════════════════════════════════════════════ -->
+<div class="overlay" id="csvModal">
+<div class="modal" style="max-width:760px">
+  <div class="mhdr">
+    <div>
+      <div class="mtitle">Importar riscos e controlos via CSV</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">Cola o conteúdo CSV ou carrega um ficheiro .csv</div>
+    </div>
+    <button class="btn btn-sm" onclick="closeCsvModal()">Fechar ✕</button>
+  </div>
+
+  <!-- Step 1: paste/upload -->
+  <div id="csvStep1">
+    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-sm" onclick="downloadCsvTemplate()">⬇ Descarregar template CSV</button>
+      <span style="font-size:12px;color:var(--muted)">Preenche o template e cola abaixo, ou carrega o ficheiro:</span>
+      <label class="btn btn-sm" style="cursor:pointer">📂 Carregar ficheiro<input type="file" accept=".csv,text/csv" style="display:none" onchange="csvFileLoad(this)"></label>
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:11px;color:var(--muted);margin-bottom:10px;font-family:monospace">
+      Formato esperado: <strong>risco_id, risco_nome, risco_desc, risco_cia, probabilidade, impacto, tratamento, ctrl_id, ctrl_nome, ctrl_tipo, ctrl_desc, ctrl_ref</strong><br>
+      Um risco pode ter múltiplas linhas (uma por controlo). Deixa ctrl_* vazio se o risco não tiver controlos.
+    </div>
+    <textarea id="csvInput" rows="10" style="width:100%;border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:12px;font-family:monospace;resize:vertical" placeholder="Cola aqui o conteúdo CSV..."></textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px">
+      <button class="btn btn-primary" onclick="csvParse()">Analisar →</button>
+    </div>
+  </div>
+
+  <!-- Step 2: preview + destination -->
+  <div id="csvStep2" style="display:none">
+    <div id="csvPreview" style="margin-bottom:16px"></div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:10px">Destino da importação</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="radio" name="csvDest" value="library" checked style="margin-top:2px">
+          <div>
+            <div style="font-weight:600;font-size:13px">Nova biblioteca personalizada</div>
+            <div style="font-size:12px;color:var(--muted)">Cria uma nova biblioteca com os riscos e controlos importados</div>
+            <input id="csvLibName" type="text" placeholder="Nome da biblioteca..." style="margin-top:6px;border:1px solid var(--border);border-radius:var(--r);padding:6px 10px;font-size:12px;width:100%;max-width:300px">
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="radio" name="csvDest" value="register" style="margin-top:2px">
+          <div>
+            <div style="font-weight:600;font-size:13px">Registo de riscos</div>
+            <div style="font-size:12px;color:var(--muted)">Adiciona os riscos directamente ao registo. Os controlos ficam associados à biblioteca "CSV Import".</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:space-between">
+      <button class="btn" onclick="csvBack()">← Voltar</button>
+      <button class="btn btn-primary" onclick="csvImport()">✓ Importar</button>
+    </div>
+  </div>
 </div>
 </div>
 
