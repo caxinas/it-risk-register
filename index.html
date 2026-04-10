@@ -109,7 +109,8 @@ tr:hover td{background:var(--bg);}
 #wizModal{align-items:center;padding:16px;}
 .overlay.open{display:flex;}
 .modal{background:var(--surface);border-radius:var(--rl);width:min(800px,100%);padding:24px;margin:auto;}
-.modal-wiz{background:var(--surface);border-radius:var(--rl);width:min(900px,96vw);height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;margin:auto;}
+.modal-wiz{background:var(--surface);border-radius:var(--rl);width:min(900px,96vw);height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;margin:auto;transition:width .2s,height .2s;}
+.modal-wiz.expanded{width:99vw;height:99vh;border-radius:4px;}
 .mhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
 .mtitle{font-size:16px;font-weight:700;}
 .mfooter{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
@@ -1056,6 +1057,7 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span id="wizDraftStatus" style="font-size:11px;color:var(--med);opacity:0;transition:opacity .3s"></span>
       <button class="btn btn-sm" onclick="openJsonModal('Retomar rascunho — cola o JSON abaixo',null,doImportDraft)" title="Retomar rascunho guardado">📂 Retomar</button>
+      <button class="btn btn-sm" id="wizExpandBtn" onclick="toggleWizExpand()" title="Expandir / reduzir janela">⤢</button>
       <button class="btn btn-sm btn-green" onclick="wizManualSaveDraft()" title="Guardar rascunho como JSON e fechar">💾 Guardar e sair</button>
       <button class="btn btn-sm" onclick="closeWiz()">Fechar ✕</button>
     </div>
@@ -2424,6 +2426,13 @@ function wBack(step){
   if(step===3) saveCurrentIR();
   if(step===8) wizGo(7); else wizGo(step-1);
 }
+function toggleWizExpand(){
+  const modal=document.querySelector(".modal-wiz");
+  const btn=document.getElementById("wizExpandBtn");
+  const expanded=modal.classList.toggle("expanded");
+  btn.textContent=expanded?"⤡":"⤢";
+  btn.title=expanded?"Reduzir janela":"Expandir janela";
+}
 
 // Step 9: Report
 function renderWizReport(){
@@ -3253,6 +3262,11 @@ function closeWiz(skipDraft=false){
     saveDraft();
   }
   document.getElementById("wizModal").classList.remove("open");
+  // Reset expanded state
+  const modal=document.querySelector(".modal-wiz");
+  const btn=document.getElementById("wizExpandBtn");
+  if(modal) modal.classList.remove("expanded");
+  if(btn){btn.textContent="⤢";btn.title="Expandir janela";}
 }
 
 // ════════════════════════════════════════════════════════════════════
