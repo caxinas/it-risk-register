@@ -222,9 +222,10 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
 .mcell{height:44px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;border:2px solid transparent;transition:opacity .15s;}
 .mcell:hover{opacity:.75;}.mcell.sel{border-color:var(--accent);}
 .mlbl{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);}
-.m-low{background:var(--med-bg);color:var(--med);}
-.m-med{background:var(--high-bg);color:var(--high);}
-.m-high{background:var(--crit-bg);color:var(--crit);}
+.m-low{background:#92d050;color:#1a3a00;}
+.m-med{background:#ffff00;color:#5a4a00;}
+.m-high{background:#ff0000;color:#fff;}
+.m-crit{background:#ff0000;color:#fff;}
 .m-crit{background:#7f1d1d;color:#fff;}
 .detail-risk{padding:10px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;}
 
@@ -459,22 +460,19 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
       <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Clica numa célula para ver os riscos</p>
       <div style="display:flex;gap:6px;align-items:flex-end">
         <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:28px">
-          <div class="mlbl" style="height:44px">5</div><div class="mlbl" style="height:44px">4</div>
-          <div class="mlbl" style="height:44px">3</div><div class="mlbl" style="height:44px">2</div>
-          <div class="mlbl" style="height:44px">1</div>
+          <div class="mlbl" style="height:44px;font-size:9px;text-align:right;padding-right:2px">M. Elevado</div><div class="mlbl" style="height:44px;font-size:9px;text-align:right;padding-right:2px">Elevado</div><div class="mlbl" style="height:44px;font-size:9px;text-align:right;padding-right:2px">Médio</div><div class="mlbl" style="height:44px;font-size:9px;text-align:right;padding-right:2px">Reduzido</div><div class="mlbl" style="height:44px;font-size:9px;text-align:right;padding-right:2px">Neglig.</div>
           <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--muted);margin-top:4px">Impacto</div>
         </div>
         <div style="flex:1">
           <div id="mxGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;"></div>
-          <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="flex:1">1</div><div class="mlbl" style="flex:1">2</div><div class="mlbl" style="flex:1">3</div><div class="mlbl" style="flex:1">4</div><div class="mlbl" style="flex:1">5</div></div>
+          <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="flex:1;font-size:9px">Raro</div><div class="mlbl" style="flex:1;font-size:9px">Improvável</div><div class="mlbl" style="flex:1;font-size:9px">Possível</div><div class="mlbl" style="flex:1;font-size:9px">Provável</div><div class="mlbl" style="flex:1;font-size:9px">Q. certo</div></div>
           <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px">Probabilidade</div>
         </div>
       </div>
       <div class="legend" style="margin-top:12px">
-        <span><i style="background:var(--med-bg);border:1px solid #86efac"></i>Baixo 1–3</span>
-        <span><i style="background:var(--high-bg);border:1px solid #fcd34d"></i>Médio 4–9</span>
-        <span><i style="background:var(--crit-bg);border:1px solid #fca5a5"></i>Alto 10–16</span>
-        <span><i style="background:#7f1d1d"></i>Crítico 17–25</span>
+        <span><i style="background:#92d050;border:1px solid #5a8a20"></i>Baixo risco</span>
+        <span><i style="background:#ffff00;border:1px solid #b8b800"></i>Médio risco</span>
+        <span><i style="background:#ff0000;border:1px solid #cc0000"></i>Elevado risco</span>
       </div>
     </div>
     <div class="card"><div class="ctitle" id="mxDetailTitle">Seleciona uma célula</div><div id="mxDetail"><p style="color:var(--muted);font-size:13px">Clica numa célula para ver os riscos.</p></div></div>
@@ -1147,22 +1145,19 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
       <div style="flex:0 0 auto">
         <div style="display:flex;gap:6px;align-items:flex-end">
           <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:24px">
-            <div class="mlbl" style="height:52px">5</div><div class="mlbl" style="height:52px">4</div>
-            <div class="mlbl" style="height:52px">3</div><div class="mlbl" style="height:52px">2</div>
-            <div class="mlbl" style="height:52px">1</div>
+            <div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">M. Elevado</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Elevado</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Médio</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Reduzido</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Neglig.</div>
             <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--muted);margin-top:4px">Impacto</div>
           </div>
           <div>
             <div id="wMxGrid" style="display:grid;grid-template-columns:repeat(5,52px);gap:3px;"></div>
-            <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="width:52px">1</div><div class="mlbl" style="width:52px">2</div><div class="mlbl" style="width:52px">3</div><div class="mlbl" style="width:52px">4</div><div class="mlbl" style="width:52px">5</div></div>
+            <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="width:52px;font-size:9px">Raro</div><div class="mlbl" style="width:52px;font-size:9px">Improvável</div><div class="mlbl" style="width:52px;font-size:9px">Possível</div><div class="mlbl" style="width:52px;font-size:9px">Provável</div><div class="mlbl" style="width:52px;font-size:9px">Q. certo</div></div>
             <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px;width:272px">Probabilidade</div>
           </div>
         </div>
         <div class="legend" style="margin-top:10px">
-          <span><i style="background:var(--med-bg);border:1px solid #86efac"></i>Baixo</span>
-          <span><i style="background:var(--high-bg);border:1px solid #fcd34d"></i>Médio</span>
-          <span><i style="background:var(--crit-bg);border:1px solid #fca5a5"></i>Alto</span>
-          <span><i style="background:#7f1d1d"></i>Crítico</span>
+          <span><i style="background:#92d050;border:1px solid #5a8a20"></i>Baixo risco</span>
+          <span><i style="background:#ffff00;border:1px solid #b8b800"></i>Médio risco</span>
+          <span><i style="background:#ff0000;border:1px solid #cc0000"></i>Elevado risco</span>
         </div>
       </div>
       <div style="flex:1;min-width:220px">
@@ -1222,22 +1217,19 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
       <div style="flex:0 0 auto">
         <div style="display:flex;gap:6px;align-items:flex-end">
           <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:24px">
-            <div class="mlbl" style="height:52px">5</div><div class="mlbl" style="height:52px">4</div>
-            <div class="mlbl" style="height:52px">3</div><div class="mlbl" style="height:52px">2</div>
-            <div class="mlbl" style="height:52px">1</div>
+            <div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">M. Elevado</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Elevado</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Médio</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Reduzido</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Neglig.</div>
             <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--muted);margin-top:4px">Impacto</div>
           </div>
           <div>
             <div id="wRxGrid" style="display:grid;grid-template-columns:repeat(5,52px);gap:3px;"></div>
-            <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="width:52px">1</div><div class="mlbl" style="width:52px">2</div><div class="mlbl" style="width:52px">3</div><div class="mlbl" style="width:52px">4</div><div class="mlbl" style="width:52px">5</div></div>
+            <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="width:52px;font-size:9px">Raro</div><div class="mlbl" style="width:52px;font-size:9px">Improvável</div><div class="mlbl" style="width:52px;font-size:9px">Possível</div><div class="mlbl" style="width:52px;font-size:9px">Provável</div><div class="mlbl" style="width:52px;font-size:9px">Q. certo</div></div>
             <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px;width:272px">Probabilidade</div>
           </div>
         </div>
         <div class="legend" style="margin-top:10px">
-          <span><i style="background:var(--med-bg);border:1px solid #86efac"></i>Baixo</span>
-          <span><i style="background:var(--high-bg);border:1px solid #fcd34d"></i>Médio</span>
-          <span><i style="background:var(--crit-bg);border:1px solid #fca5a5"></i>Alto</span>
-          <span><i style="background:#7f1d1d"></i>Crítico</span>
+          <span><i style="background:#92d050;border:1px solid #5a8a20"></i>Baixo risco</span>
+          <span><i style="background:#ffff00;border:1px solid #b8b800"></i>Médio risco</span>
+          <span><i style="background:#ff0000;border:1px solid #cc0000"></i>Elevado risco</span>
         </div>
       </div>
       <div style="flex:1;min-width:220px">
@@ -1538,8 +1530,8 @@ const CIA_OPTS = [
 ];
 const CIA_PCT = {Reduzido:25,Médio:50,Alto:75,"Muito Alto":100};
 const CIA_COL = {Reduzido:"#2563eb",Médio:"#16a34a",Alto:"#d97706","Muito Alto":"#7f1d1d"};
-const PROB_LABELS = ["","Muito improvável","Improvável","Possível","Provável","Muito provável"];
-const IMP_LABELS  = ["","Desprezível","Menor","Moderado","Grave","Catastrófico"];
+const PROB_LABELS = ["","Raro","Improvável","Possível","Provável","Quase certo"];
+const IMP_LABELS  = ["","Negligenciável","Reduzido","Médio","Elevado","Muito Elevado"];
 
 let systems = [
   {id:"S-001",name:"Portal de Clientes",desc:"Aplicação web de self-service para clientes.",type:"Aplicação Web",owner:"CIO",data:["Pessoais","Financeiros"],env:"Produção",cia:{C:"Muito Alto",I:"Alto",A:"Alto"}},
@@ -1557,6 +1549,22 @@ let ch = {};
 // ════════════════════════════════════════════════════════════════════
 // UTILS
 // ════════════════════════════════════════════════════════════════════
+// Matrix cell colour — matches image exactly (I=row 1-5 bottom-top, P=col 1-5)
+// Green: low risk, Yellow: medium, Red: high
+function matrixCellClass(p,i){
+  // Red cells (high risk)
+  if(i===5 && p>=2) return "m-high";
+  if(i===4 && p>=4) return "m-high";
+  if(i===3 && p===5) return "m-high";
+  // Yellow cells (medium risk)
+  if(i===5 && p===1) return "m-med";
+  if(i===4 && p>=2 && p<=3) return "m-med";
+  if(i===3 && p>=3 && p<=4) return "m-med";
+  if(i===2 && p===5) return "m-med";
+  // Green cells (low risk) — everything else
+  return "m-low";
+}
+
 function lvl(s){if(s>=17)return"Crítico";if(s>=10)return"Alto";if(s>=4)return"Médio";return"Baixo";}
 function sc(s){if(s>=17)return"critical";if(s>=10)return"high";if(s>=4)return"medium";return"low";}
 function classColor(cl){const m={"Pública":"b-mitigado","Interna":"b-medio","Restrito":"b-alto","Confidencial":"b-critico","Secreto":"b-muitoalto"};return"badge "+(m[cl]||"b-reduzido");}
@@ -2367,7 +2375,7 @@ function renderMatrix(){
   const g=document.getElementById("mxGrid");let h="";
   for(let i=5;i>=1;i--)for(let p=1;p<=5;p++){
     const s=p*i;const cnt=risks.filter(r=>r.prob===p&&r.impact===i).length;
-    let cls="m-low";if(s>=17)cls="m-crit";else if(s>=10)cls="m-high";else if(s>=4)cls="m-med";
+    const cls=matrixCellClass(p,i);
     h+=`<div class="mcell ${cls}" onclick="showMxDetail(${p},${i},this)">${cnt||""}</div>`;
   }
   g.innerHTML=h;
@@ -2824,7 +2832,7 @@ function renderWizMatrix(){
   for(let i=5;i>=1;i--) for(let p=1;p<=5;p++){
     const s=p*i;
     const items=wizIRItems.filter(x=>x.prob===p&&x.impact===i);
-    let cls="m-low";if(s>=17)cls="m-crit";else if(s>=10)cls="m-high";else if(s>=4)cls="m-med";
+    const cls=matrixCellClass(p,i);
     h+=`<div class="mcell ${cls}" style="height:52px;font-size:11px;flex-direction:column;gap:1px" onclick="showWizMxDetail(${p},${i},this)">
       ${items.length?`<span style="font-weight:700;font-size:14px">${items.length}</span><span style="font-size:9px;opacity:.85;text-align:center;line-height:1.2">${items.slice(0,3).map(x=>x.id).join(" ")}${items.length>3?"…":""}</span>`:""}
     </div>`;
@@ -3633,7 +3641,7 @@ function renderResidualMatrix(){
   for(let i=5;i>=1;i--) for(let p=1;p<=5;p++){
     const s=p*i;
     const items=wizIRItems.filter(x=>{const r=calcResidual(x);return r.prob===p&&r.impact===i;});
-    let cls="m-low";if(s>=17)cls="m-crit";else if(s>=10)cls="m-high";else if(s>=4)cls="m-med";
+    const cls=matrixCellClass(p,i);
     h+=`<div class="mcell ${cls}" style="height:52px;font-size:11px;flex-direction:column;gap:1px" onclick="showRxDetail(${p},${i},this)">
       ${items.length?`<span style="font-weight:700;font-size:14px">${items.length}</span><span style="font-size:9px;opacity:.85;text-align:center;line-height:1.2">${items.slice(0,3).map(x=>x.id).join(" ")}${items.length>3?"…":""}</span>`:""}
     </div>`;
