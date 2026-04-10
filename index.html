@@ -2,9 +2,10 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; connect-src https://cdnjs.cloudflare.com; img-src 'self' data:;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IT Risk Register</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" crossorigin="anonymous"></script>
 <style>
 :root{
   --bg:#f4f4f2;--surface:#fff;--border:#e0e0db;--text:#1a1a18;--muted:#6b6b68;
@@ -1329,6 +1330,17 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
 // ════════════════════════════════════════════════════════════════════
 // DATA — LIBRARIES
 // ════════════════════════════════════════════════════════════════════
+// ── Security: HTML escaping (OWASP A03) ────────────────────────
+function escapeHtml(str){
+  if(str==null) return "";
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#x27;");
+}
+
 // ── Toast & Confirm ──────────────────────────────────────────────
 function toast(msg, type="info", duration=3500){
   const el=document.createElement("div");
@@ -1658,7 +1670,7 @@ function renderDash(){
   ch.sys=new Chart(document.getElementById("cSystem"),{type:"bar",data:{labels:Object.keys(sc2),datasets:[{data:Object.values(sc2),backgroundColor:"#1d3461",borderRadius:4,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{ticks:{stepSize:1},grid:{color:"rgba(0,0,0,.06)"}},y:{ticks:{font:{size:11}}}}}});
 
   const top=[...risks].sort((a,b)=>(b.residualScore||b.prob*b.impact)-(a.residualScore||a.prob*a.impact)).slice(0,5);
-  document.getElementById("topTable").innerHTML=top.length?top.map(r=>{const sr=r.residualScore||r.prob*r.impact;const sys=sysById(r.system);return`<tr><td class="rid">${r.id}</td><td>${r.title}</td><td style="font-size:12px">${sys?sys.name:"—"}</td><td>${r.libName?`<span class="b-lib">${r.libName}</span>`:"—"}</td><td><div class="score s-${sc(sr)}">${sr}</div></td><td><span class="${bc(lvl(sr))}">${lvl(sr)}</span></td><td><span class="${bc(r.status)}">${r.status}</span></td></tr>`;}).join(""):"<tr><td colspan='7' class='empty'>Sem riscos</td></tr>";
+  document.getElementById("topTable").innerHTML=top.length?top.map(r=>{const sr=r.residualScore||r.prob*r.impact;const sys=sysById(r.system);return`<tr><td class="rid">${r.id}</td><td>${escapeHtml(r.title)}</td><td style="font-size:12px">${sys?sys.name:"—"}</td><td>${r.libName?`<span class="b-lib">${r.libName}</span>`:"—"}</td><td><div class="score s-${sc(sr)}">${sr}</div></td><td><span class="${bc(lvl(sr))}">${lvl(sr)}</span></td><td><span class="${bc(r.status)}">${r.status}</span></td></tr>`;}).join(""):"<tr><td colspan='7' class='empty'>Sem riscos</td></tr>";
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1690,8 +1702,8 @@ function renderSystems(){
     const ac=analyses.filter(a=>a.system===s.id).length;
     return`<tr style="cursor:pointer" onclick="openSysView('${s.id}')" title="Clica para ver detalhes">
       <td style="vertical-align:middle">
-        <div style="font-weight:700;font-size:13px">${s.name}</div>
-        ${s.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${s.desc}</div>`:""}
+        <div style="font-weight:700;font-size:13px">${escapeHtml(s.name)}</div>
+        ${s.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(s.desc)}</div>`:""}
       </td>
       <td style="font-size:12px;white-space:nowrap;vertical-align:middle">${s.type}</td>
       <td style="font-size:12px;vertical-align:middle">${s.env||"—"}</td>
@@ -1737,7 +1749,7 @@ function openSysView(id){
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Exposição</div><div style="font-size:13px">${s.exposure||"—"}</div></div>
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">MTPD</div><div style="font-size:13px;font-weight:600">${s.mtpd||"—"}</div></div>
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Dados processados</div><div style="font-size:13px">${(s.data||[]).join(", ")||"—"}</div></div>
-      ${s.desc?`<div class="fg full"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Descrição</div><div style="font-size:13px">${s.desc}</div></div>`:""}
+      ${s.desc?`<div class="fg full"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Descrição</div><div style="font-size:13px">${escapeHtml(s.desc)}</div></div>`:""}
     </div>
     <div style="margin-top:16px">
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">CIA — Classificação de impacto</div>
@@ -1769,7 +1781,7 @@ function openSysView(id){
   document.getElementById("svAnalyses").innerHTML=ac.length
     ?ac.slice(0,5).map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
         <span class="rid">${a.id}</span>
-        <span style="font-size:12px;flex:1">${a.lib}</span>
+        <span style="font-size:12px;flex:1">${escapeHtml(a.lib)}</span>
         <span style="font-size:11px;color:var(--muted)">${a.date}</span>
         ${a.locked?'<span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:600">✓</span>':""}
       </div>`).join("")
@@ -1790,7 +1802,7 @@ function ciaRow(label,val){
 function syncSysFilter(){
   const el=document.getElementById("rSystem");if(!el)return;
   const cur=el.value;
-  el.innerHTML="<option value=''>Todos os sistemas</option>"+systems.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  el.innerHTML="<option value=''>Todos os sistemas</option>"+systems.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
   el.value=cur;
 }
 
@@ -1870,7 +1882,7 @@ function renderAnalyses(){
     return`<tr>
       <td class="rid">${a.id}</td>
       <td style="font-weight:600">${sys?sys.name:"—"}${locked?`<div style="font-size:10px;margin-top:2px"><span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:3px;padding:1px 6px;font-weight:600">✓ Concluída</span></div>`:""}</td>
-      <td><span class="b-lib" style="font-size:11px">${a.lib}</span></td>
+      <td><span class="b-lib" style="font-size:11px">${escapeHtml(a.lib)}</span></td>
       <td style="font-size:12px;color:var(--muted)">${a.date}</td>
       <td style="text-align:center">${aRisks.length}${plans.length?`<div style="font-size:10px;color:var(--muted)">${plans.length} plano${plans.length!==1?"s":""}</div>`:""}
       </td>
@@ -1899,7 +1911,7 @@ function viewAnalysis(aid){
   document.getElementById("vaTitle").textContent=`${a.id} — ${sys?sys.name:"—"}`;
   document.getElementById("vaMeta").innerHTML=
     `<span class="tag">Data: ${a.date}</span>
-     <span class="tag">${a.lib}</span>
+     <span class="tag">${escapeHtml(a.lib)}</span>
      <span class="tag">CIA: C=${a.cia?.C||"—"} · I=${a.cia?.I||"—"} · A=${a.cia?.A||"—"}</span>
      ${a.locked?'<span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:4px;padding:2px 10px;font-size:12px;font-weight:600">✓ Concluída</span>':""}`;
 
@@ -1926,7 +1938,7 @@ function viewAnalysis(aid){
           const si=r.prob*r.impact; const sr=r.residualScore||si;
           return`<tr style="background:${i%2===0?"var(--surface)":"var(--bg)"}">
             <td style="padding:5px 8px;font-family:monospace">${r.id}</td>
-            <td style="padding:5px 8px;font-weight:600;max-width:180px">${r.title}<div style="font-size:10px;color:var(--muted);font-weight:400">${r.libName||""}</div></td>
+            <td style="padding:5px 8px;font-weight:600;max-width:180px">${escapeHtml(r.title)}<div style="font-size:10px;color:var(--muted);font-weight:400">${r.libName||""}</div></td>
             <td style="padding:5px 8px;text-align:center">${r.prob}</td>
             <td style="padding:5px 8px;text-align:center">${r.impact}</td>
             <td style="padding:5px 8px;text-align:center"><div class="score s-${sc(si)}" style="width:26px;height:26px;font-size:11px">${si}</div></td>
@@ -1951,7 +1963,7 @@ function viewAnalysis(aid){
         <tbody>${aPlans.map((p,i)=>`
           <tr style="background:${i%2===0?"var(--surface)":"var(--bg)"}">
             <td style="padding:5px 8px;font-family:monospace">${p.id}</td>
-            <td style="padding:5px 8px;max-width:150px">${p.riskName||p.riskId||"—"}</td>
+            <td style="padding:5px 8px;max-width:150px">${escapeHtml(p.riskName)||p.riskId||"—"}</td>
             <td style="padding:5px 8px">${p.ctrlId} — ${p.ctrlName}</td>
             <td style="padding:5px 8px">${p.owner||"—"}</td>
             <td style="padding:5px 8px;color:var(--muted)">${p.dueDate||"—"}</td>
@@ -1999,7 +2011,7 @@ function exportAnalysisReport(aid){
     const improved=sr<si;
     return`<tr style="background:${idx%2===0?"#ffffff":"#f9fafb"}">
       <td style="padding:8px 10px;font-family:monospace;font-size:12px;color:#374151">${r.id}</td>
-      <td style="padding:8px 10px;font-weight:600;font-size:13px;max-width:200px">${r.title}<div style="font-size:11px;color:#9ca3af;font-weight:400">${r.libName||""}</div></td>
+      <td style="padding:8px 10px;font-weight:600;font-size:13px;max-width:200px">${escapeHtml(r.title)}<div style="font-size:11px;color:#9ca3af;font-weight:400">${r.libName||""}</div></td>
       <td style="padding:8px 10px;text-align:center;font-size:12px">${r.prob}</td>
       <td style="padding:8px 10px;text-align:center;font-size:12px">${r.impact}</td>
       <td style="padding:8px 10px;text-align:center"><span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:5px;font-weight:700;font-size:13px;background:${levelBg[li]};color:${levelColor[li]}">${si}</span></td>
@@ -2012,7 +2024,7 @@ function exportAnalysisReport(aid){
   const planRows=aPlans.length?aPlans.map((p,idx)=>`
     <tr style="background:${idx%2===0?"#ffffff":"#f9fafb"}">
       <td style="padding:8px 10px;font-family:monospace;font-size:12px">${p.id}</td>
-      <td style="padding:8px 10px;font-size:13px;font-weight:600">${p.riskName||p.riskId||"—"}</td>
+      <td style="padding:8px 10px;font-size:13px;font-weight:600">${escapeHtml(p.riskName)||p.riskId||"—"}</td>
       <td style="padding:8px 10px;font-size:12px">${p.ctrlId} — ${p.ctrlName}</td>
       <td style="padding:8px 10px;font-size:12px">${p.owner||"—"}</td>
       <td style="padding:8px 10px;font-size:12px;color:#6b7280">${p.dueDate||"—"}</td>
@@ -2145,7 +2157,7 @@ function renderTable(){
   em.style.display="none";
   tb.innerHTML=f.map(r=>{const s=r.prob*r.impact;const l=lvl(s);const sys=sysById(r.system);return`<tr>
     <td class="rid">${r.id}</td>
-    <td style="max-width:200px"><div style="font-weight:600">${r.title}</div><div style="font-size:11px;color:var(--muted)">${r.owner||"—"}</div></td>
+    <td style="max-width:200px"><div style="font-weight:600">${escapeHtml(r.title)}</div><div style="font-size:11px;color:var(--muted)">${r.owner||"—"}</div></td>
     <td style="font-size:12px">${sys?sys.name:"—"}</td>
     <td>${r.libName?`<span class="b-lib">${r.libRef||""}</span>`:"—"}</td>
     <td style="text-align:center">${r.prob}</td>
@@ -2168,7 +2180,7 @@ function buildCtrlList(cid,sel){
 }
 function getChecked(cid){return[...document.querySelectorAll("#"+cid+" input:checked")].map(x=>x.value);}
 function fillSysSel(selId,sid){
-  document.getElementById(selId).innerHTML="<option value=''>— Sem sistema —</option>"+systems.map(s=>`<option value="${s.id}" ${s.id===sid?"selected":""}>${s.name}</option>`).join("");
+  document.getElementById(selId).innerHTML="<option value=''>— Sem sistema —</option>"+systems.map(s=>`<option value="${s.id}" ${s.id===sid?"selected":""}>${escapeHtml(s.name)}</option>`).join("");
 }
 function fillLibSel(selId,lib){
   document.getElementById(selId).innerHTML="<option value=''>— Nenhuma —</option>"+LIB_NAMES.map(l=>`<option value="${l}" ${l===lib?"selected":""}>${l}</option>`).join("");
@@ -2435,7 +2447,7 @@ function showMxDetail(p,i,el){
   document.querySelectorAll(".mcell").forEach(c=>c.classList.remove("sel"));el.classList.add("sel");
   const s=p*i;const rs=risks.filter(r=>r.prob===p&&r.impact===i);
   document.getElementById("mxDetailTitle").textContent=`P=${p} × I=${i} — Score ${s} (${lvl(s)})`;
-  document.getElementById("mxDetail").innerHTML=rs.length?rs.map(r=>{const sys=sysById(r.system);return`<div class="detail-risk"><strong>${r.id} — ${r.title}</strong><br><small style="color:var(--muted)">${sys?sys.name+" · ":""} ${r.libName||""}</small><div style="margin-top:6px"><span class="${bc(r.status)}">${r.status}</span></div></div>`;}).join(""):"<p style='color:var(--muted);font-size:13px'>Nenhum risco nesta posição.</p>";
+  document.getElementById("mxDetail").innerHTML=rs.length?rs.map(r=>{const sys=sysById(r.system);return`<div class="detail-risk"><strong>${escapeHtml(r.id)} — ${escapeHtml(r.title)}</strong><br><small style="color:var(--muted)">${sys?escapeHtml(sys.name)+" · ":""} ${r.libName||""}</small><div style="margin-top:6px"><span class="${bc(r.status)}">${r.status}</span></div></div>`;}).join(""):"<p style='color:var(--muted);font-size:13px'>Nenhum risco nesta posição.</p>";
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -2581,7 +2593,7 @@ function buildWizReportHtml(){
   const planRows=plans.length?plans.map((p,idx)=>{
     const bg=idx%2===0?"#ffffff":"#f9fafb";
     return`<tr style="background:${bg}">
-      <td style="padding:8px;font-size:12px">${p.riskName||p.riskId||"—"}</td>
+      <td style="padding:8px;font-size:12px">${escapeHtml(p.riskName)||p.riskId||"—"}</td>
       <td style="padding:8px;font-size:12px">${p.ctrlId} — ${p.ctrlName}</td>
       <td style="padding:8px;font-size:12px">${p.owner||"—"}</td>
       <td style="padding:8px;font-size:12px;color:#6b7280">${p.dueDate||"—"}</td>
@@ -2941,7 +2953,7 @@ function renderCtrlEffStep(){
     return`<div style="border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <span style="font-weight:700">${c.id}</span>
-        <span style="font-size:13px">${c.name}</span>
+        <span style="font-size:13px">${escapeHtml(c.name)}</span>
         <span class="ct ${ctc(c.type)}">${c.type}</span>
       </div>
       <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
@@ -3125,7 +3137,7 @@ function persistAppData(){
   if(!LS_OK) return; // silently skip if localStorage unavailable
   try {
     localStorage.setItem(APP_KEY, JSON.stringify({systems,risks,analyses,mitigationPlans,customLibs,appUsers,authModeEnabled,globalCtrls}));
-  } catch(e){ console.warn("persistAppData failed",e); }
+  } catch(e){  }
 }
 
 function loadAppData(){
@@ -3144,7 +3156,7 @@ function loadAppData(){
     if(d.globalCtrls && d.globalCtrls.length) globalCtrls=d.globalCtrls;
     // Migrate old custom libs that may lack customCtrls
     migrateCustomLibs();
-  } catch(e){ console.warn("loadAppData failed",e); }
+  } catch(e){  }
 }
 
 function migrateCustomLibs(){
@@ -3237,6 +3249,13 @@ function showJsonStatus(msg){
 }
 
 function doImportAppData(data){
+  // OWASP A04 — validate structure before accepting data
+  if(typeof data !== 'object' || data === null) throw new Error('Estrutura JSON inválida');
+  if(data.systems    !== undefined && !Array.isArray(data.systems))    throw new Error('systems deve ser array');
+  if(data.risks      !== undefined && !Array.isArray(data.risks))      throw new Error('risks deve ser array');
+  if(data.analyses   !== undefined && !Array.isArray(data.analyses))   throw new Error('analyses deve ser array');
+  if(data.appUsers   !== undefined && !Array.isArray(data.appUsers))   throw new Error('appUsers deve ser array');
+  if(data.mitigationPlans !== undefined && !Array.isArray(data.mitigationPlans)) throw new Error('mitigationPlans deve ser array');
   if(data.systems)       systems=data.systems;
   if(data.risks)         risks=data.risks;
   if(data.analyses)      analyses=data.analyses;
@@ -3466,7 +3485,7 @@ function renderLwCtrlList(){
       <div style="flex:1">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <span class="rid">${c.id}</span>
-          <span style="font-weight:600;font-size:13px">${c.name}</span>
+          <span style="font-weight:600;font-size:13px">${escapeHtml(c.name)}</span>
           <span class="ct ${ctc(c.type)}">${c.type}</span>
         </div>
         ${c.desc?`<div style="font-size:12px;color:var(--muted)">${c.desc}</div>`:""}
@@ -3787,7 +3806,7 @@ function nextPlanId(){
 function renderPlans(){
   // sync system filter
   const pSys=document.getElementById("planSystem");
-  if(pSys){const cur=pSys.value;pSys.innerHTML="<option value=''>Todos os sistemas</option>"+systems.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");pSys.value=cur;}
+  if(pSys){const cur=pSys.value;pSys.innerHTML="<option value=''>Todos os sistemas</option>"+systems.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");pSys.value=cur;}
 
   const q=(document.getElementById("planSearch")?.value||"").toLowerCase();
   const st=document.getElementById("planStatus")?.value||"";
@@ -3855,7 +3874,7 @@ function openPlanAdd(wizItem, ctrlId, fromWizard=false){
 
   // system
   const sysSel=document.getElementById("pm-system");
-  sysSel.innerHTML="<option value=''>— Sem sistema —</option>"+systems.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  sysSel.innerHTML="<option value=''>— Sem sistema —</option>"+systems.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
   if(wizItem) document.getElementById("pm-system").value=wizSysId||"";
 
   document.getElementById("planModal").classList.add("open");
@@ -3915,7 +3934,7 @@ function openPlanEdit(id){
   }
 
   const sysSel=document.getElementById("pm-system");
-  sysSel.innerHTML="<option value=''>— Sem sistema —</option>"+systems.map(s=>`<option value="${s.id}" ${s.id===p.system?"selected":""}>${s.name}</option>`).join("");
+  sysSel.innerHTML="<option value=''>— Sem sistema —</option>"+systems.map(s=>`<option value="${s.id}" ${s.id===p.system?"selected":""}>${escapeHtml(s.name)}</option>`).join("");
   document.getElementById("pm-owner").value=p.owner||"";
   document.getElementById("pm-due").value=p.dueDate||"";
   document.getElementById("pm-desc").value=p.description||"";
@@ -4294,10 +4313,10 @@ function renderLogs(){
     const bg = i%2===0?"":"background:var(--bg)";
     return`<tr style="${bg}">
       <td style="font-size:11px;color:var(--muted);white-space:nowrap">${date}<br>${time}</td>
-      <td style="font-size:12px;font-weight:600">${l.user}<div style="font-size:10px;color:var(--muted);font-weight:400">${l.username}</div></td>
+      <td style="font-size:12px;font-weight:600">${escapeHtml(l.user)}<div style="font-size:10px;color:var(--muted);font-weight:400">${l.username}</div></td>
       <td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:${catColor}18;color:${catColor}">${catLabel}</span></td>
-      <td style="font-size:13px">${l.action}</td>
-      <td style="font-size:11px;color:var(--muted);font-family:monospace">${l.ref||"—"}</td>
+      <td style="font-size:13px">${escapeHtml(l.action)}</td>
+      <td style="font-size:11px;color:var(--muted);font-family:monospace">${escapeHtml(l.ref)||"—"}</td>
     </tr>`;
   }).join("");
 }
@@ -4365,7 +4384,7 @@ function renderUsers(){
           </div>
         </div>
       </td>
-      <td style="font-family:monospace;font-size:12px">${u.username}</td>
+      <td style="font-family:monospace;font-size:12px">${escapeHtml(u.username)}</td>
       <td><span class="badge ${role.color}">${role.label}</span></td>
       <td><span class="badge ${u.status==="active"?"b-mitigado":"b-aberto"}">${u.status==="active"?"Ativo":"Inativo"}</span></td>
       <td style="font-size:12px;color:var(--muted)">${u.createdAt||"—"}</td>
@@ -4465,7 +4484,7 @@ function showLoginScreen(){
       return`<button class="login-user-btn" onclick="loginAsUser('${u.id}')">
         <div class="login-user-avatar">${u.name.charAt(0).toUpperCase()}</div>
         <div style="text-align:left">
-          <div style="font-weight:600;font-size:13px">${u.name}</div>
+          <div style="font-weight:600;font-size:13px">${escapeHtml(u.name)}</div>
           <div style="font-size:11px;color:#6b7280">${role.label}</div>
         </div>
       </button>`;
@@ -4649,7 +4668,7 @@ function openUserSwitch(){
         const isCurrent=currentUser&&currentUser.id===u.id;
         return`<div onclick="selectSwitchUser('${u.id}')" id="switchOpt-${u.id}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:2px solid ${isCurrent?"var(--accent)":"var(--border)"};border-radius:var(--r);cursor:pointer;transition:all .15s;background:${isCurrent?"var(--accent-light)":"var(--surface)"}">
           <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${u.name.charAt(0).toUpperCase()}</div>
-          <div style="flex:1"><div style="font-weight:600;font-size:13px">${u.name}</div><div style="font-size:11px;color:var(--muted)">${u.username} · <span class="badge ${role.color}" style="font-size:10px">${role.label}</span></div></div>
+          <div style="flex:1"><div style="font-weight:600;font-size:13px">${escapeHtml(u.name)}</div><div style="font-size:11px;color:var(--muted)">${u.username} · <span class="badge ${role.color}" style="font-size:10px">${role.label}</span></div></div>
           ${isCurrent?'<span style="font-size:11px;color:var(--accent);font-weight:600">atual</span>':""}
         </div>`;
       }).join("")
