@@ -458,21 +458,32 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
     <div class="card">
       <div class="ctitle">Matriz de risco inerente</div>
       <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Clica numa célula para ver os riscos</p>
-      <div style="display:flex;gap:6px;align-items:flex-end">
-        <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:28px">
-          <div class="mlbl" style="height:44px;font-size:9px;text-align:right;padding-right:2px">M. Elevado</div><div class="mlbl" style="height:44px;font-size:9px;text-align:right;padding-right:2px">Elevado</div><div class="mlbl" style="height:44px;font-size:9px;text-align:right;padding-right:2px">Médio</div><div class="mlbl" style="height:44px;font-size:9px;text-align:right;padding-right:2px">Reduzido</div><div class="mlbl" style="height:44px;font-size:9px;text-align:right;padding-right:2px">Neglig.</div>
-          <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--muted);margin-top:4px">Impacto</div>
+      <div style="display:flex;gap:4px;align-items:flex-start">
+        <div style="display:flex;align-items:center;height:228px;margin-right:2px">
+          <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:700;color:#374151;display:flex;align-items:center;gap:4px;white-space:nowrap">
+            Impacto
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;margin-right:4px">
+          <div style="height:44px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">M. Elevado</div>
+          <div style="height:44px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Elevado</div>
+          <div style="height:44px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Médio</div>
+          <div style="height:44px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Reduzido</div>
+          <div style="height:44px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Neglig.</div>
         </div>
         <div style="flex:1">
           <div id="mxGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;"></div>
-          <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="flex:1;font-size:9px">Raro</div><div class="mlbl" style="flex:1;font-size:9px">Improvável</div><div class="mlbl" style="flex:1;font-size:9px">Possível</div><div class="mlbl" style="flex:1;font-size:9px">Provável</div><div class="mlbl" style="flex:1;font-size:9px">Q. certo</div></div>
-          <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px">Probabilidade</div>
+          <div style="display:flex;gap:3px;margin-top:4px">
+            <div style="flex:1;text-align:center;font-size:9px;color:#374151">Raro</div>
+            <div style="flex:1;text-align:center;font-size:9px;color:#374151">Improvável</div>
+            <div style="flex:1;text-align:center;font-size:9px;color:#374151">Possível</div>
+            <div style="flex:1;text-align:center;font-size:9px;color:#374151">Provável</div>
+            <div style="flex:1;text-align:center;font-size:9px;color:#374151">Q. certo</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:10px;font-weight:700;color:#374151">
+            Probabilidade
+          </div>
         </div>
-      </div>
-      <div class="legend" style="margin-top:12px">
-        <span><i style="background:#92d050;border:1px solid #5a8a20"></i>Baixo risco</span>
-        <span><i style="background:#ffff00;border:1px solid #b8b800"></i>Médio risco</span>
-        <span><i style="background:#ff0000;border:1px solid #cc0000"></i>Elevado risco</span>
       </div>
     </div>
     <div class="card"><div class="ctitle" id="mxDetailTitle">Seleciona uma célula</div><div id="mxDetail"><p style="color:var(--muted);font-size:13px">Clica numa célula para ver os riscos.</p></div></div>
@@ -1143,21 +1154,32 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
     <div class="wsub">Posicionamento dos riscos avaliados. Cada célula mostra os riscos com esse par probabilidade × impacto.</div>
     <div style="display:flex;gap:20px;flex-wrap:wrap">
       <div style="flex:0 0 auto">
-        <div style="display:flex;gap:6px;align-items:flex-end">
-          <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:24px">
-            <div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">M. Elevado</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Elevado</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Médio</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Reduzido</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Neglig.</div>
-            <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--muted);margin-top:4px">Impacto</div>
+                <div style="display:flex;gap:4px;align-items:flex-start">
+          <div style="display:flex;align-items:center;height:278px;margin-right:2px">
+            <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:700;color:#374151;display:flex;align-items:center;gap:4px;white-space:nowrap">
+              Impacto
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;margin-right:4px">
+            <div style="height:52px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">M. Elevado</div>
+            <div style="height:52px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Elevado</div>
+            <div style="height:52px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Médio</div>
+            <div style="height:52px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Reduzido</div>
+            <div style="height:52px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Neglig.</div>
           </div>
           <div>
             <div id="wMxGrid" style="display:grid;grid-template-columns:repeat(5,52px);gap:3px;"></div>
-            <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="width:52px;font-size:9px">Raro</div><div class="mlbl" style="width:52px;font-size:9px">Improvável</div><div class="mlbl" style="width:52px;font-size:9px">Possível</div><div class="mlbl" style="width:52px;font-size:9px">Provável</div><div class="mlbl" style="width:52px;font-size:9px">Q. certo</div></div>
-            <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px;width:272px">Probabilidade</div>
+            <div style="display:flex;gap:3px;margin-top:4px">
+              <div style="width:52px;text-align:center;font-size:9px;color:#374151">Raro</div>
+              <div style="width:52px;text-align:center;font-size:9px;color:#374151">Improvável</div>
+              <div style="width:52px;text-align:center;font-size:9px;color:#374151">Possível</div>
+              <div style="width:52px;text-align:center;font-size:9px;color:#374151">Provável</div>
+              <div style="width:52px;text-align:center;font-size:9px;color:#374151">Q. certo</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:10px;font-weight:700;color:#374151">
+              Probabilidade
+            </div>
           </div>
-        </div>
-        <div class="legend" style="margin-top:10px">
-          <span><i style="background:#92d050;border:1px solid #5a8a20"></i>Baixo risco</span>
-          <span><i style="background:#ffff00;border:1px solid #b8b800"></i>Médio risco</span>
-          <span><i style="background:#ff0000;border:1px solid #cc0000"></i>Elevado risco</span>
         </div>
       </div>
       <div style="flex:1;min-width:220px">
@@ -1215,21 +1237,32 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
     <div class="wsub">Posicionamento após aplicação dos controlos. Cria planos de mitigação para os riscos residuais.</div>
     <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px">
       <div style="flex:0 0 auto">
-        <div style="display:flex;gap:6px;align-items:flex-end">
-          <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:24px">
-            <div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">M. Elevado</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Elevado</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Médio</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Reduzido</div><div class="mlbl" style="height:52px;font-size:9px;text-align:right;padding-right:2px">Neglig.</div>
-            <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--muted);margin-top:4px">Impacto</div>
+                <div style="display:flex;gap:4px;align-items:flex-start">
+          <div style="display:flex;align-items:center;height:278px;margin-right:2px">
+            <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:700;color:#374151;display:flex;align-items:center;gap:4px;white-space:nowrap">
+              Impacto
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;margin-right:4px">
+            <div style="height:52px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">M. Elevado</div>
+            <div style="height:52px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Elevado</div>
+            <div style="height:52px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Médio</div>
+            <div style="height:52px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Reduzido</div>
+            <div style="height:52px;display:flex;align-items:center;font-size:9px;color:#374151;white-space:nowrap;justify-content:flex-end">Neglig.</div>
           </div>
           <div>
             <div id="wRxGrid" style="display:grid;grid-template-columns:repeat(5,52px);gap:3px;"></div>
-            <div style="display:flex;gap:3px;margin-top:4px"><div class="mlbl" style="width:52px;font-size:9px">Raro</div><div class="mlbl" style="width:52px;font-size:9px">Improvável</div><div class="mlbl" style="width:52px;font-size:9px">Possível</div><div class="mlbl" style="width:52px;font-size:9px">Provável</div><div class="mlbl" style="width:52px;font-size:9px">Q. certo</div></div>
-            <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px;width:272px">Probabilidade</div>
+            <div style="display:flex;gap:3px;margin-top:4px">
+              <div style="width:52px;text-align:center;font-size:9px;color:#374151">Raro</div>
+              <div style="width:52px;text-align:center;font-size:9px;color:#374151">Improvável</div>
+              <div style="width:52px;text-align:center;font-size:9px;color:#374151">Possível</div>
+              <div style="width:52px;text-align:center;font-size:9px;color:#374151">Provável</div>
+              <div style="width:52px;text-align:center;font-size:9px;color:#374151">Q. certo</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:10px;font-weight:700;color:#374151">
+              Probabilidade
+            </div>
           </div>
-        </div>
-        <div class="legend" style="margin-top:10px">
-          <span><i style="background:#92d050;border:1px solid #5a8a20"></i>Baixo risco</span>
-          <span><i style="background:#ffff00;border:1px solid #b8b800"></i>Médio risco</span>
-          <span><i style="background:#ff0000;border:1px solid #cc0000"></i>Elevado risco</span>
         </div>
       </div>
       <div style="flex:1;min-width:220px">
@@ -1554,12 +1587,13 @@ let ch = {};
 function matrixCellClass(p,i){
   // Red cells (high risk)
   if(i===5 && p>=2) return "m-high";
-  if(i===4 && p>=4) return "m-high";
+  if(i===4 && p>=3) return "m-high";
+  if(i===4 && p>=1 && p<=2) return "m-med";
   if(i===3 && p===5) return "m-high";
   // Yellow cells (medium risk)
   if(i===5 && p===1) return "m-med";
   if(i===4 && p>=2 && p<=3) return "m-med";
-  if(i===3 && p>=3 && p<=4) return "m-med";
+  if(i===3 && p>=2 && p<=4) return "m-med";
   if(i===2 && p===5) return "m-med";
   // Green cells (low risk) — everything else
   return "m-low";
