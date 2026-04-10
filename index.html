@@ -377,7 +377,7 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
       <th>Ambiente</th>
       <th>Classificação</th>
       <th>Criticidade</th>
-      <th>Proprietário</th>
+      <th>MTPD</th>
       <th style="text-align:center">Análises</th>
       <th style="text-align:center">Riscos</th>
       <th></th>
@@ -955,6 +955,18 @@ background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)
         <option value="Cloud Pública">Cloud Pública</option>
         <option value="Cloud Privada">Cloud Privada</option>
         <option value="Híbrido">Híbrido</option>
+      </select>
+    </div>
+    <div class="fg"><label>MTPD</label>
+      <select id="sf-mtpd">
+        <option value="">— Não definido —</option>
+        <option value="DR0+">DR0+ — Até 2 horas</option>
+        <option value="DR0">DR0 — Até 4 horas</option>
+        <option value="DR1">DR1 — Até 1 dia</option>
+        <option value="DR2">DR2 — Até 2 dias</option>
+        <option value="DR3">DR3 — Até 1 semana</option>
+        <option value="DR4">DR4 — Mais de 1 semana</option>
+        <option value="N/A">Não aplicável</option>
       </select>
     </div>
     <div class="fg"><label>Classificação da informação</label>
@@ -1677,17 +1689,18 @@ function renderSystems(){
     const rc=risks.filter(r=>r.system===s.id).length;
     const ac=analyses.filter(a=>a.system===s.id).length;
     return`<tr style="cursor:pointer" onclick="openSysView('${s.id}')" title="Clica para ver detalhes">
-      <td>
+      <td style="vertical-align:middle">
         <div style="font-weight:700;font-size:13px">${s.name}</div>
         ${s.desc?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${s.desc}</div>`:""}
       </td>
-      <td style="font-size:12px;white-space:nowrap">${s.type}</td>
-      <td style="font-size:12px">${s.env||"—"}</td>
-      <td>${s.classification?`<span class="badge ${classColor(s.classification)}" style="font-size:10px">${s.classification}</span>`:`<span style="font-size:11px;color:var(--muted)">—</span>`}</td>
-      <td style="font-size:12px;white-space:nowrap">${["C","I","A"].map(k=>{const v=s.cia?.[k];const abbr=({"Reduzido":"R","Médio":"M","Alto":"A","Muito Alto":"MA"})[v]||"—";const col=({"Reduzido":"var(--med)","Médio":"#ca8a04","Alto":"var(--high)","Muito Alto":"var(--crit)"})[v]||"var(--muted)";return`<span style="color:${col};font-weight:600">${abbr}</span>`;}).join('<span style="color:var(--border);margin:0 2px">·</span>')}</td>
-      <td style="text-align:center;font-size:13px;font-weight:600">${ac}</td>
-      <td style="text-align:center;font-size:13px;font-weight:600">${rc}</td>
-      <td style="white-space:nowrap" onclick="event.stopPropagation()">
+      <td style="font-size:12px;white-space:nowrap;vertical-align:middle">${s.type}</td>
+      <td style="font-size:12px;vertical-align:middle">${s.env||"—"}</td>
+      <td style="vertical-align:middle">${s.classification?`<span class="badge ${classColor(s.classification)}" style="font-size:10px">${s.classification}</span>`:`<span style="font-size:11px;color:var(--muted)">—</span>`}</td>
+      <td style="font-size:12px;white-space:nowrap;vertical-align:middle">${["C","I","A"].map(k=>{const v=s.cia?.[k];const abbr=({"Reduzido":"R","Médio":"M","Alto":"A","Muito Alto":"MA"})[v]||"—";const col=({"Reduzido":"var(--med)","Médio":"#ca8a04","Alto":"var(--high)","Muito Alto":"var(--crit)"})[v]||"var(--muted)";return`<span style="color:${col};font-weight:600">${abbr}</span>`;}).join('<span style="color:var(--border);margin:0 2px">·</span>')}</td>
+      <td style="font-size:12px;vertical-align:middle;white-space:nowrap">${s.mtpd||"—"}</td>
+      <td style="text-align:center;font-size:13px;font-weight:600;vertical-align:middle">${ac}</td>
+      <td style="text-align:center;font-size:13px;font-weight:600;vertical-align:middle">${rc}</td>
+      <td style="white-space:nowrap;vertical-align:middle" onclick="event.stopPropagation()">
         <button class="btn btn-sm btn-accent" onclick="startWiz('${s.id}')" title="Iniciar análise de risco">▶${hasDraftForSystem(s.id)?' 📝':''}</button>
         <button class="btn btn-sm" onclick="openSysEdit('${s.id}')">Editar</button>
         <button class="btn btn-sm btn-danger" onclick="delSys('${s.id}')">✕</button>
@@ -1722,6 +1735,7 @@ function openSysView(id){
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Criticidade</div><div><span class="${bc(crit)}">${crit}</span></div></div>
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Classificação</div><div>${s.classification?`<span class="badge ${classColor(s.classification)}">${s.classification}</span>`:"—"}</div></div>
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Exposição</div><div style="font-size:13px">${s.exposure||"—"}</div></div>
+      <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">MTPD</div><div style="font-size:13px;font-weight:600">${s.mtpd||"—"}</div></div>
       <div class="fg"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Dados processados</div><div style="font-size:13px">${(s.data||[]).join(", ")||"—"}</div></div>
       ${s.desc?`<div class="fg full"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Descrição</div><div style="font-size:13px">${s.desc}</div></div>`:""}
     </div>
@@ -1788,6 +1802,7 @@ function openSysAdd(){
   document.getElementById("sf-env").value="Produção";
   document.getElementById("sf-class").value="";
   document.getElementById("sf-exposure").value="";
+  document.getElementById("sf-mtpd").value="";
   document.getElementById("sf-data").value="";
   document.getElementById("sf-cia-c").value="";
   document.getElementById("sf-cia-i").value="";
@@ -1805,6 +1820,7 @@ function openSysEdit(id){
   document.getElementById("sf-env").value=s.env||"Produção";
   document.getElementById("sf-class").value=s.classification||"";
   document.getElementById("sf-exposure").value=s.exposure||"";
+  document.getElementById("sf-mtpd").value=s.mtpd||"";
   document.getElementById("sf-data").value=Array.isArray(s.data)?s.data[0]||"":s.data||"";
   document.getElementById("sf-cia-c").value=s.cia?.C||"";
   document.getElementById("sf-cia-i").value=s.cia?.I||"";
@@ -1823,7 +1839,8 @@ function saveSys(){
   const data=dataVal?[dataVal]:[];
   const classification=document.getElementById("sf-class").value;
   const exposure=document.getElementById("sf-exposure").value;
-  const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,classification,exposure,data,cia:{C:cC,I:cI,A:cA}};
+  const mtpd=document.getElementById("sf-mtpd").value;
+  const s={id:editSysId||nextSysId(),name,desc:document.getElementById("sf-desc").value,type:document.getElementById("sf-type").value,owner:document.getElementById("sf-owner").value,env:document.getElementById("sf-env").value,classification,exposure,mtpd,data,cia:{C:cC,I:cI,A:cA}};
   if(editSysId){systems[systems.findIndex(x=>x.id===editSysId)]=s;}else{systems.push(s);}
   addLog('system',editSysId?`Sistema editado`:`Sistema criado`,name);
   closeSysModal();persistAppData();renderSystems();syncSysFilter();
